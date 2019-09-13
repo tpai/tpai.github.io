@@ -1,0 +1,12 @@
+{
+  "name": "Resume",
+  "version": "1.0.0",
+  "description": "Markdown based resume",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/xuxiaodong/resume.git"
+  },
+  "dependencies": {
+    "markdown-resume": "~0.1.0"
+  }
+}
