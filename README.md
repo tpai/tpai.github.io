@@ -1,4 +1,4 @@
-This repo forked from David Hamp-Gonsalves [Resume][https://github.com/davidhampgonsalves/resume]。
+This repo forked from David Hamp-Gonsalves [Resume](https://github.com/davidhampgonsalves/resume).
 
 ## Prerequisites
 
