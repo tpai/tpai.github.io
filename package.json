@@ -1,10 +1,18 @@
 {
-  "name": "Resume",
+  "name": "tonypai-resume",
   "version": "1.0.0",
   "description": "Markdown based resume",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/xuxiaodong/resume.git"
+  "scripts": {
+    "start": "bnr cp:css && bnr cp:html && bnr build:html && bnr build:pdf && bnr rename && bnr server",
+    "dev": "nodemon -w resume.md -w resume.css"
+  },
+  "betterScripts": {
+    "cp:css": "cp *.css ./node_modules/markdown-resume/assets/css",
+    "cp:html": "cp default.html ./node_modules/markdown-resume/assets/templates",
+    "build:html": "node ./node_modules/markdown-resume/bin/md2resume resume.md",
+    "build:pdf": "node ./node_modules/markdown-resume/bin/md2resume --pdf resume.md",
+    "rename": "mv resume.html index.html",
+    "server": "serve ."
   },
   "devDependencies": {
     "better-npm-run": "^0.1.1",
