@@ -6,7 +6,10 @@
     "type": "git",
     "url": "git://github.com/xuxiaodong/resume.git"
   },
-  "dependencies": {
-    "markdown-resume": "~0.1.0"
+  "devDependencies": {
+    "better-npm-run": "^0.1.1",
+    "markdown-resume": "0.1.0",
+    "nodemon": "^1.19.2",
+    "serve": "^11.1.0"
   }
 }
