@@ -1,5 +1,5 @@
-@import url(http://fonts.googleapis.com/css?family=Old+Standard+TT);
-@import url(http://fonts.googleapis.com/css?family=Open+Sans);
+@import url(https://fonts.googleapis.com/css?family=EB+Garamond);
+
 /* clearfix */
 .container:before,
 .container:after {
@@ -17,13 +17,19 @@
 }
 
 body {
-  font-family: 'Open Sans','Myriad Pro','Myriad',sans-serif;
-  color: #1D1313;
+  font-family: 'EB Garamond',sans-serif;
   font-weight: 300;
+  color: #1D1313;
 }
 
 h1, h2, h3, h4, ul dl dt {
-  font-family: 'Old Standard TT',serif;
+  font-family: 'EB Garamond',serif;
+}
+
+code {
+  font-family: 'EB Garamond',sans-serif;
+  font-size: 16px;
+  line-height: 18px;
 }
 
 .container {
@@ -169,7 +175,7 @@ ol li {
   float: left;
   list-style: none;
   line-height: 24px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 dl {
@@ -351,7 +357,7 @@ dl em {
 
   p {
     margin-left: 25px;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 20px;
   }
 
@@ -364,10 +370,6 @@ dl em {
 @media (max-width: 625px) {
   ul li {
     width: 100%;
-  }
-
-  ul br:nth-of-type(1) {
-    display: none;
   }
 
   ul a {
@@ -383,19 +385,19 @@ dl em {
 @media (max-width: 625px) {
   p {
     margin-left: 5px;
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 16px;
+    line-height: 20px;
   }
 
   p strong, p em {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 20px;
   }
 
   ol li {
     width: 50%;
     margin: 0;
-    font-size: 12px;
+    font-size: 16px;
   }
 }
 

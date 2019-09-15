@@ -2,7 +2,7 @@
 ## Web Developer
 
 > [github.com/tpai](https://github.com/tpai)
-> [tony77794 [at] gmail.com](mailto:tony77794@gmail.com)
+> [tony77794@gmail.com](mailto:tony77794@gmail.com)
 > (+886) 972-322212
 
 ------
@@ -26,34 +26,32 @@
 
 ### Experience
 
-**Oriente** *Sr. Front End Software Engineer* __2019.7 ~ Now__
-    In order to boost user conversion of native app which running loan business, built a e-commerce platform to integrate shopping and the payment from the app.
-    ・Collaborated with remote team members for hybrid app integration.
-    ・Built with server side rendering framework Nuxt.js for serving customized meta data.
-    ・Maintained a Vue based UI library for front end team.
-    ・Assembled stack on top of AWS for building container system.
+**Oriente** Sr. Front End Software Engineer  __*2019.7 ~ Now*__
+    In order to boost user conversion of native app, built a e-commerce platform to integrate shopping and the payment.
+    `・Programmed a Nuxt.js middleware for authentication.`
+    `・Maintained a Vue based UI library for front end team.`
+    `・Assembled stack on top of AWS for building container system.`
     **Tech Stack**: Vue.js, Nuxt.js, Node.js, Docker and AWS(e.g., CodePipeline, CloudFormation, ECS, ALB, CloudFront)
 
-**Taroko** *Senior Engineer* __2017.12 ~ 2019.5__
+**Taroko** Senior Engineer  __*2017.12 ~ 2019.5*__
     Initiated refactor plan to old products for modern features SPA and RWD.
-    ・Supported multiple products across teams, including planning, refactoring and designing new system architecture.
-    ・Improved local development stack by setting up docker-compose.
-    ・Developed high test coverage project to deliver solid web application.
-    ・Evaluated the mono repo managing tool Lerna and in charge of migration.
+    `・Improved local development stack with docker-compose.`
+    `・Developed high test coverage project to deliver solid web application.`
+    `・Evaluated the mono repo managing tool Lerna and was in charge of migration.`
     **Tech Stack**: React.js, Jest, Node.js and Docker
 
-**Feversocial** *Sr. Front End Engineer* __2016.8 ~ 2017.12__
+**Feversocial** Sr. Front End Engineer  __*2016.8 ~ 2017.12*__
     Launched a new service which provide faster and easier ways to build landing page for no IT company.
-    ・Set up whole technology stack from scratch.
-    ・Optimized deployment from several minutes down time to zero down time.
-    ・Provided user to customize their own landing page domain name and medium-like path.
+    `・Set up front end stack and design system architecture from scratch.`
+    `・Optimized deployment from several minutes down time to zero down time.`
+    `・Completed domain name customization and medium-like path features.`
     **Tech Stack**: React.js, Next.js, Node.js, Docker, Circle CI and AWS(e.g., Lambda, ECS, ALB, CloudFlare)
 
-**Ifalo** *Sr. Front End Developer* __2015.10 ~ 2016.5__
+**Ifalo** Sr. Front End Developer  __*2015.10 ~ 2016.5*__
     Maintained internal system and refactored dashboard panel for better user experience.
-    ・Programmed a brand new project based on React.js.
-    ・Remodeled a PHP project to SPA for new user flow.
-    ・Solved bugs and troubleshooting.
+    `・Programmed a brand new project based on React.js.`
+    `・Remodeled a PHP project to SPA for new user flow.`
+    `・Solved bugs and troubleshoot.`
     **Tech Stack**: React.js, jQuery
 
 ------
@@ -62,7 +60,7 @@
 
 * **Taiwan Travel Level**
     [travel.tonypai.com.tw](https://travel.tonypai.com.tw)
-    There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where are you stay in Japan, I think it's interesting so I made a modern version for Taiwan with vanilla JS. This tool was on fire in a whole week, it reached 70 thousand unique PVs in 7 days.
+    There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where you stay in Japan, I think it's interesting so I made a modern version for Taiwan with vanilla JS. This tool was on fire in a whole week, it reached 70 thousand unique PVs in 7 days.
 
 * **Oriente UI**
     [workspace.tonypai.now.sh](https://workspace.tonypai.now.sh/)
