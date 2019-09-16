@@ -7,30 +7,13 @@
 
 ------
 
-### Skills
-
-1. React.js
-1. Redux
-1. Redux Saga
-1. Redux Observable
-1. Vue.js
-1. Next.js
-1. Nuxt.js
-1. Node.js
-1. AWS
-1. Docker
-1. CI/CD
-1. CDN
-
-------
-
 ### Experience
 
 **Oriente** Sr. Front End Software Engineer  __*2019.7 ~ Now*__
-    In order to boost user conversion of native app, built a e-commerce platform to integrate shopping and the payment.
-    `・Programmed a Nuxt.js middleware for authentication.`
-    `・Maintained a Vue based UI library for front end team.`
-    `・Assembled stack on top of AWS for building container system.`
+    To boost user conversion of native app, built an e-commerce platform to integrate purchasing and the payment.
+    `・Programmed a Nuxt.js authentication middleware for making code modularized and decoupled.`
+    `・Maintained a Vue based UI library for reducing communication cost between developer and designer.`
+    `・Assembled stack on top of AWS for producing container system.`
     **Tech Stack**: Vue.js, Nuxt.js, Node.js, Docker and AWS(e.g., CodePipeline, CloudFormation, ECS, ALB, CloudFront)
 
 **Taroko** Senior Engineer  __*2017.12 ~ 2019.5*__
@@ -38,12 +21,12 @@
     `・Improved local development stack with docker-compose.`
     `・Developed high test coverage project to deliver solid web application.`
     `・Evaluated the mono repo managing tool Lerna and was in charge of migration.`
-    **Tech Stack**: React.js, Jest, Node.js and Docker
+    **Tech Stack**: React.js, Jest, Node.js, and Docker
 
 **Feversocial** Sr. Front End Engineer  __*2016.8 ~ 2017.12*__
-    Launched a new service which provide faster and easier ways to build landing page for no IT company.
+    Launched a new service which provides faster and easier ways to build a landing page for no IT company.
     `・Set up front end stack and design system architecture from scratch.`
-    `・Optimized deployment from several minutes down time to zero down time.`
+    `・Optimized deployment from several minutes downtime to zero downtime.`
     `・Completed domain name customization and medium-like path features.`
     **Tech Stack**: React.js, Next.js, Node.js, Docker, Circle CI and AWS(e.g., Lambda, ECS, ALB, CloudFlare)
 
@@ -64,11 +47,11 @@
 
 * **Oriente UI**
     [workspace.tonypai.now.sh](https://workspace.tonypai.now.sh/)
-    A Vue component library built for common usage inside company, developer and designer can start a styleguide server to develop new component, and it support both cilent side rendering and server side rendering. And thanks to Github Actions, this repo will automatically publish npm package.
+    A Vue component library built for common usage inside a company, developer, and designer can start a style guide server to develop a new component, and it supports both client-side rendering and server-side rendering. Also, it will automatically publish the npm package by Github Actions CI/CD.
 
 * **React Starter Kit**
     [r2-starter-kit.herokuapp.com](https://r2-starter-kit.herokuapp.com/)
-    R^2 Starter Kit is a boilerplate for web development built on top of React, Redux, Redux Saga and Webpack 4, also it integrated Heroku, Travis CI, Coveralls and lots of 3rd party services. I maintained it for almost 4 years, and I will keep everything new in the next few years.
+    R^2 Starter Kit is a boilerplate for web development built on top of React, Redux, Redux-Saga and Webpack 4, also it integrated Heroku, Travis CI, Coveralls and lots of 3rd party services. I maintained it for almost 4 years, and I will keep everything new in the next few years.
 
 ------
 
