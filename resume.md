@@ -46,7 +46,7 @@
     There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where you stay in Japan, I think it's interesting so I made a modern version for Taiwan with vanilla JS. This tool was on fire in a whole week, it reached 70 thousand unique PVs in 7 days.
 
 * **Oriente UI**
-    [workspace.tonypai.now.sh](https://workspace.tonypai.now.sh/)
+    [oriente-ui.tonypai.now.sh](https://oriente-ui.tonypai.now.sh/)
     A Vue component library built for common usage inside a company, developer, and designer can start a style guide server to develop a new component, and it supports both client-side rendering and server-side rendering. Also, it will automatically publish the npm package by Github Actions CI/CD.
 
 * **React Starter Kit**
