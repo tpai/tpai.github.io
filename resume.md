@@ -9,7 +9,7 @@
 
 ### Experience
 
-**Oriente** Sr. Front End Software Engineer  __*2019.7 ~ Now*__
+**Oriente** Sr. Front End Software Engineer  __*2019.7 ~ 2020.4*__
     To boost user conversion of native app, built an e-commerce platform to integrate purchasing and the payment.
     `・Programmed a Nuxt.js authentication middleware for making code modularized and decoupled.`
     `・Maintained a Vue based UI library for reducing communication cost between developer and designer.`
