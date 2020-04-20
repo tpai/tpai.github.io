@@ -10,10 +10,10 @@
 ### Experience
 
 **Oriente** Sr. Front End Software Engineer  __*2019.7 ~ 2020.4*__
-    To boost user conversion of native app, built an e-commerce platform to integrate purchasing and the payment.
-    `・Programmed a Nuxt.js authentication middleware for making code modularized and decoupled.`
-    `・Maintained a Vue based UI library for reducing communication cost between developer and designer.`
-    `・Assembled stack on top of AWS for producing container system.`
+    Built an e-commerce platform to boost the user conversion rate of the loan business of the company, this platform is a WebView app inside a native app called Cashalo.
+    `・Programmed a server-side rendered EC WebView app with Nuxt.js.`
+    `・Maintained a Vue UI library for front end team.`
+    `・Assembled a web stack on top of AWS.`
     **Tech Stack**: Vue.js, Nuxt.js, Node.js, Docker and AWS(e.g., CodePipeline, CloudFormation, ECS, ALB, CloudFront)
 
 **Taroko** Senior Engineer  __*2017.12 ~ 2019.5*__
