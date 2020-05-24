@@ -9,6 +9,11 @@
 
 ### Experience
 
+**OneDegree** Senior Engineer __*2020.5 ~ Now*__
+    Cooperated with talented team and delivered high availability insurance web application.
+    `・Programmed a server-side rendered app with Next.js.`
+    **Tech Stack**: React.js, Next.js and Typescript
+
 **Oriente** Sr. Front End Software Engineer  __*2019.7 ~ 2020.4*__
     Built an e-commerce platform to boost the user conversion rate of the loan business of the company, this platform is a WebView app inside a native app called Cashalo.
     `・Programmed a server-side rendered EC WebView app with Nuxt.js.`
@@ -20,7 +25,7 @@
     Initiated refactor plan to old products for modern features SPA and RWD.
     `・Improved local development stack with docker-compose.`
     `・Developed high test coverage project to deliver solid web application.`
-    `・Evaluated the mono repo managing tool Lerna and was in charge of migration.`
+    `・Evaluated the mono repo managing tool Lerna and its migration.`
     **Tech Stack**: React.js, Jest, Node.js, and Docker
 
 **Feversocial** Sr. Front End Engineer  __*2016.8 ~ 2017.12*__
@@ -43,7 +48,7 @@
 
 * **Taiwan Travel Level**
     [travel.tonypai.com.tw](https://travel.tonypai.com.tw)
-    There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where you stay in Japan, I think it's interesting so I made a modern version for Taiwan with vanilla JS. This tool was on fire in a whole week, it reached 70 thousand unique PVs in 7 days.
+    There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where you stay in Japan, I think it's interesting so I made a modern version for Taiwan with vanilla JS. This tool was on fire in a whole week, it reached 700 thousand unique PVs in 7 days.
 
 * **Oriente UI**
     [oriente-ui.tonypai.now.sh](https://oriente-ui.tonypai.now.sh/)
