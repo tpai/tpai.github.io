@@ -12,19 +12,21 @@
 **OneDegree** Senior Engineer __*2020.5 ~ Now*__
     Cooperated with talented team and delivered high availability insurance web application.
     `・Programmed a server-side rendered app with Next.js.`
+    `・Developed a tool which can convert swagger schema to Typescript interface.`
+    `・Shared dev experience and latest tech news across the team.`
     **Tech Stack**: React.js, Next.js and Typescript
 
 **Oriente** Sr. Front End Software Engineer  __*2019.7 ~ 2020.4*__
-    Built an e-commerce platform to boost the user conversion rate of the loan business of the company, this platform is a WebView app inside a native app called Cashalo.
-    `・Programmed a server-side rendered EC WebView app with Nuxt.js.`
+    Built an e-commerce platform to boost the user conversion rate of the loan business of the company.
+    `・Programmed a server-side rendered WebView app with Nuxt.js.`
     `・Maintained a Vue UI library for front end team.`
     `・Assembled a web stack on top of AWS.`
     **Tech Stack**: Vue.js, Nuxt.js, Node.js, Docker and AWS(e.g., CodePipeline, CloudFormation, ECS, ALB, CloudFront)
 
 **Taroko** Senior Engineer  __*2017.12 ~ 2019.5*__
     Initiated refactor plan to old products for modern features SPA and RWD.
-    `・Improved local development stack with docker-compose.`
-    `・Developed high test coverage project to deliver solid web application.`
+    `・Integrated modern web app with Rails.`
+    `・Increased test coverage for delivering solid production.`
     `・Evaluated the mono repo managing tool Lerna and its migration.`
     **Tech Stack**: React.js, Jest, Node.js, and Docker
 
