@@ -2,8 +2,8 @@
 ## Web Developer
 
 > [github.com/tpai](https://github.com/tpai)
+> [linkedin.com/in/tonyxpai](https://www.linkedin.com/in/tonyxpai/)
 > [tony77794@gmail.com](mailto:tony77794@gmail.com)
-> (+886) 972-322212
 
 ------
 
