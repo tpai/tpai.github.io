@@ -1,5 +1,5 @@
 # Tony Pai
-## Web Developer
+## Senior Site Reliability Engineer
 
 > [github.com/tpai](https://github.com/tpai)
 > [linkedin.com/in/tonyxpai](https://www.linkedin.com/in/tonyxpai/)
@@ -21,7 +21,7 @@
     `・Developed a tool which can convert swagger schema to Typescript interface.`
     `・Shared dev experience and latest tech news across the team.`
 
-**Oriente** Sr. Front End Software Engineer  __*2019.7 ~ 2020.4*__
+**Oriente** Senior Front End Software Engineer  __*2019.7 ~ 2020.4*__
     Built an e-commerce platform to boost the user conversion rate of the loan business of the company.
     `・Programmed a server-side rendered WebView app with Nuxt.js.`
     `・Maintained a Vue UI library for front end team.`
@@ -33,13 +33,13 @@
     `・Increased test coverage for delivering solid production.`
     `・Evaluated the mono repo managing tool Lerna and its migration.`
 
-**Feversocial** Sr. Front End Engineer  __*2016.8 ~ 2017.12*__
+**Feversocial** Senior Front End Engineer  __*2016.8 ~ 2017.12*__
     Launched a new service which provides faster and easier ways to build a landing page for no IT company.
     `・Set up front end stack and design system architecture from scratch.`
     `・Optimized deployment from several minutes downtime to zero downtime.`
     `・Completed domain name customization and medium-like path features.`
 
-**Ifalo** Sr. Front End Developer  __*2015.10 ~ 2016.5*__
+**Ifalo** Senior Front End Developer  __*2015.10 ~ 2016.5*__
     Maintained internal system and refactored dashboard panel for better user experience.
     `・Programmed a brand new project based on React.js.`
     `・Remodeled a PHP project to SPA for new user flow.`
@@ -49,26 +49,36 @@
 
 ### Side Projects
 
+* **Doge Deck**
+    [tonypai.com.tw/dogedeck/](https://tonypai.com.tw/dogedeck/)
+    A simple tool to collect meme images, those images are Yu-Gi-Oh themed cards and full of doges, it provides people who loves meme a better way to search and contribute their creation. It went viral in a week and had 130 thousand unique visitors since the begining.
+
 * **Taiwan Travel Level**
     [travel.tonypai.com.tw](https://travel.tonypai.com.tw)
-    There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where you stay in Japan, I think it's interesting so I made a modern version for Taiwan with vanilla JS. This tool was on fire in a whole week, it reached 700 thousand unique PVs in 7 days.
-
-* **Oriente UI**
-    [oriente-ui.tonypai.now.sh](https://oriente-ui.tonypai.now.sh/)
-    A Vue component library built for common usage inside a company, developer, and designer can start a style guide server to develop a new component, and it supports both client-side rendering and server-side rendering. Also, it will automatically publish the npm package by Github Actions CI/CD.
+    There is one famous tool called [KKN](https://uub.jp/kkn/) which will generate map and score based on how long and where you stay in Japan, I made a modern version for Taiwan with vanilla JS. It was on fire and attracted 700 thousand unique visitors in two weeks.
 
 * **React Starter Kit**
     [r2-starter-kit.herokuapp.com](https://r2-starter-kit.herokuapp.com/)
-    R^2 Starter Kit is a boilerplate for web development built on top of React, Redux, Redux-Saga and Webpack 4, also it integrated Heroku, Travis CI, Coveralls and lots of 3rd party services. I maintained it for almost 4 years, and I will keep everything new in the next few years.
+    A boilerplate for web development which built on top of React, Redux, Redux-Saga and Webpack 4, it integrated a bunch of CI tools and services. It has been maintained for almost 6 years, it is a valuable project to me.
+
+------
+
+### Certifications
+
+* **Microsoft Certified: DevOps Engineer Expert**
+    [Issued Sep 2021](https://slides.com/tonypai/tgdf2015-unityapksecurity)
+
+* **Microsoft Certified: Azure Administrator Associate**
+    [Issued Apr 2021](https://www.credly.com/badges/ce138560-e716-4a04-a9e3-f7dba60e0365)
 
 ------
 
 ### Volunteer
 
-* **JSDC Speaker** __2017__
+* **JSDC 2017 Speaker**
     [DevOps for F2E](https://slides.com/tonypai/devops-for-f2e)
 
-* **TGDF Speaker** __2015__
+* **TGDF 2015 Speaker**
     [Basic Security Info for Indie Game Developer](https://slides.com/tonypai/tgdf2015-unityapksecurity)
 
 ------

@@ -141,7 +141,7 @@ ul li {
 }
 
 ul li p {
-  margin: 1em 0.5em;
+  margin: 0 0.5em 1em;
   line-height: 120%;
 }
 
