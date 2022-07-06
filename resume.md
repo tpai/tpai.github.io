@@ -65,11 +65,14 @@
 
 ### Certifications
 
+* **Microsoft Certified: Azure Solutions Architect Expert**
+    [Issued on Jun 2022](https://www.credly.com/badges/2e30b71a-dc1e-452a-9fa9-e5b784dc9185/public_url)
+
 * **Microsoft Certified: DevOps Engineer Expert**
-    [Issued Sep 2021](https://slides.com/tonypai/tgdf2015-unityapksecurity)
+    [Issued on Sep 2021](https://www.credly.com/badges/b0e70871-7467-46c4-a70b-098185e99735/public_url)
 
 * **Microsoft Certified: Azure Administrator Associate**
-    [Issued Apr 2021](https://www.credly.com/badges/ce138560-e716-4a04-a9e3-f7dba60e0365)
+    [Issued on Apr 2021](https://www.credly.com/badges/ce138560-e716-4a04-a9e3-f7dba60e0365/public_url)
 
 ------
 
