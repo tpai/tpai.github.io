@@ -9,7 +9,13 @@
 
 ### Experience
 
-**OneDegree** Senior Site Reliability Engineer __*2021.7 ~ Now*__
+**OneDegree** Principal Site Reliability Engineer __*2022.7 ~ Now*__
+    Keeping system available, reliable and maintainable, and provide valuable recommendation for both development and infrastructure issues.
+    `・Planned flexible infra solutions for on-premises and multi-cloud environment.`
+    `・Constructed monitoring and proactive alerting system for reducing occurrences of incidents.`
+    `・Provided continuous feedback to R&D and SRE team on system stability and availability.`
+
+**OneDegree** Senior Site Reliability Engineer __*2021.7 ~ 2022.7*__
     Responsible for cloud infrastructure management and deployment automation.
     `・Created a secure CI/CD flow using Gitlab and pipeline trigger.`
     `・Constructed Azure cloud infrastructure for web application.`
