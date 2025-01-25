@@ -89,4 +89,5 @@ typings/
 
 # Output files
 *.html
+!default.html
 !index.html
