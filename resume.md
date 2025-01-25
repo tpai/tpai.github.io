@@ -1,5 +1,5 @@
 # Tony Pai
-## Senior Site Reliability Engineer
+## Site Reliability Engineer
 
 > [github.com/tpai](https://github.com/tpai)
 > [linkedin.com/in/tonyxpai](https://www.linkedin.com/in/tonyxpai/)
