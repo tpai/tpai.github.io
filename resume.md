@@ -51,18 +51,18 @@
 
 ------
 
-### Side Projects
+### Side Projects (GitHub)
 
 * **Summary GPT Bot**
-    <a href="https://github.com/tpai/summary-gpt-bot" target="_blank">github.com/tpai/summary-gpt-bot</a>
+    <a href="https://github.com/tpai/summary-gpt-bot" target="_blank">tpai/summary-gpt-bot</a>
     An AI-powered text summarization Telegram bot that generates concise summaries of text, URLs, PDFs, and YouTube videos.
 
 * **Doge Deck**
-    <a href="https://github.com/tpai/dogedeck" target="_blank">github.com/tpai/dogedeck</a>
+    <a href="https://github.com/tpai/dogedeck" target="_blank">tpai/dogedeck</a>
     A simple tool to collect meme images, those images are Yu-Gi-Oh themed cards and full of doges, it provides people who loves meme a better way to search and contribute their creation. It went viral in a week and had 130 thousand unique visitors since the begining.
 
 * **Taiwan Travel Level**
-    <a href="https://github.com/tpai/taiwan-travel-level" target="_blank">github.com/tpai/taiwan-travel-level</a>
+    <a href="https://github.com/tpai/taiwan-travel-level" target="_blank">tpai/taiwan-travel-level</a>
     There is one famous tool called <a href="https://uub.jp/kkn/" target="_blank">KKN</a> which will generate map and score based on how long and where you stay in Japan, I made a modern version for Taiwan with vanilla JS. It was on fire and attracted 700 thousand unique visitors in two weeks.
 
 ------
