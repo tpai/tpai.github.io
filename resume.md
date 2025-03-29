@@ -9,45 +9,65 @@
 
 ### Experience
 
-**OneDegree** Principal Site Reliability Engineer *2022.7-2025.3*
-    Coordinated SRE resources across business entities while managing systems, designed solutions, integrating tools, and prototyping stacks.
-    ・Managed <u>ETL</u> systems for data pipeline.
-    ・Designed <u>on-premises</u> and <u>cloud</u> solutions for core products.
+<u><b>OneDegree / Principal Site Reliability Engineer *2022.7-2025.3*</b></u>
+    Coordinated SRE resources across multiple business entities while managing systems, designed solutions, integrating tools, and prototyping stacks.
+    ・Managed ETL systems for data pipeline.
+    ・Designed on-premises and cloud solutions for core products.
     ・Integrated Fortify with pipelines for generating scanning reports.
-    ・Created a <u>MLflow</u> stack PoC to help AI team streamline model training.
+    ・Created a MLflow stack PoC to help AI team streamline model finetuning.
     ・Coordinated SRE resources across business entities.
+    <b>Achievements</b>
+    ・Continuously optimize system architecutre and housekeeping efforts to reduce cloud costs by at least 30% for each business unit.
+    ・Successfully implemented an on-premises solution in collaboration with an international insurance broker for Tesla car insurance sales in Taiwan.
+    ・Organized 20 internal technology-sharing events.
+    ・Delivered AI and Kubernetes talks at iThome conferences in 2023 and 2024.
+    <b>Tech Stack</b>
+    ・Docker, Kubernetes, On-Premises, Azure, GCP, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform, Python, Shell, Cloudflare ZTNA
 
-**OneDegree** Senior Site Reliability Engineer *2021.7-2022.7*
+<u><b>OneDegree / Senior Site Reliability Engineer *2021.7-2022.7*</b></u>
     Responsible for managing and automating cloud infrastructure deployments.
-    ・Maintained <u>Docker</u>-based VMs and <u>Kubernetes</u> clusters.
-    ・Developed <u>GitLab CI/CD</u> pipelines optimizing deployments.
-    ・Integrated <u>Elastic Stack</u> for log collection.
-    ・Implemented <u>Ansible</u> and <u>Terraform</u> for infrastructure.
-    ・Implemented monitoring with <u>Prometheus</u> and <u>Grafana</u>.
+    ・Maintained Docker-based VMs and Kubernetes clusters.
+    ・Developed GitLab CI/CD pipelines optimizing deployments.
+    ・Integrated EFK with applications for log collection.
+    <b>Achievements</b>
+    ・Introduced Ansible and Terraform, increasing the speed of on-premises and cloud solution setup by 5x.
+    ・Implemented Prometheus and Grafana to centralize metrics, reducing troubleshooting time by 50%.
+    ・Introduced Cert Manager to automate HTTPS certificate renewal.
+    <b>Tech Stack</b>
+    ・Docker, Kubernetes, Azure, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform
 
-**OneDegree** Senior Engineer *2020.5-2021.7*
-    Collaborated with a highly skilled team to deliver an insurance application.
-    ・Developed a server-side rendered application utilizing <u>Next.js</u>.
-    ・Crafted a tool to transform Swagger schemas into TypeScript interfaces.
-    ・Facilitated the sharing of development experiences and the latest technology advancements within the team.
+<u><b>OneDegree / Senior Engineer *2020.5-2021.7*</b></u>
+    Responsible for developing an insurance core system and customizing landing pages for clients.
+    ・Developed a server-side rendered application using Next.js.
+    ・Customized client landing pages with React.js.
+    <b>Achievements</b>
+    ・Crafted a tool to transform Swagger schemas into TypeScript interfaces reducing the communication cost between front end and back end.
+    <b>Tech Stack</b>
+    ・React.js, Next.js, Node.js, Docker
 
-**Oriente** Senior Front End Software Engineer  *2019.7-2020.4*
+<u><b>Oriente / Senior Front End Software Engineer  *2019.7-2020.4*</b></u>
     Developed an e-commerce platform to enhance the user conversion rate for the company's loan business.
-    ・Programmed a server-side rendered WebView application using <u>Nuxt.js</u>.
+    ・Programmed a server-side rendered WebView application using Nuxt.js.
     ・Maintained a Vue.js UI library for the front-end team.
-    ・Crafted a comprehensive web stack on the <u>AWS</u> platform.
+    ・Crafted a comprehensive web stack on the AWS platform.
+    <b>Tech Stack</b>
+    ・Vue.js, Nuxt.js, Docker, AWS
 
-**Taroko** Senior Engineer  *2017.12-2019.5*
+<u><b>Taroko / Senior Engineer  *2017.12-2019.5*</b></u>
     Initiated a refactoring plan to update legacy products with modern SPA features and RWD.
-    ・Integrated <u>React.js</u> web applications with Ruby on Rails.
+    ・Integrated React.js web applications with Ruby on Rails.
     ・Enhanced test coverage to ensure robust production quality.
     ・Introduced the monorepo management tool Lerna.
+    <b>Tech Stack</b>
+    ・React.js, Node.js, Lerna
 
-**Feversocial** Senior Front End Engineer  *2016.8-2017.12*
+<u><b>Feversocial / Senior Front End Engineer  *2016.8-2017.12*</b></u>
     Crafted a new service from scratch to provide a faster and easier solution for building landing pages for companies without IT.
-    ・Established <u>React.js</u> front-end stack and system architecture.
+    ・Established React.js front-end stack and system architecture.
     ・Optimized the deployment process, reducing downtime from several minutes to near zero.
     ・Implemented domain name customization and Medium-like path features.
+    <b>Tech Stack</b>
+    ・React.js
 
 ------
 
