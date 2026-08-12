@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ambient Monster Spawn Starvation — 修法模擬</title>
+<style>
+  :root{
+    --bg:#0b1018; --panel:#131b28; --panel2:#0f1622; --line:#243044;
+    --ink:#e7eef7; --dim:#8d9cb3; --faint:#5c6b83;
+    --amber:#ffd166; --rose:#ef476f; --grey:#5b6472; --sky:#58c9ff;
+    --green:#3ddc97; --orange:#ffa94d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.65 ui-sans-serif,-apple-system,"Helvetica Neue","PingFang TC","Noto Sans TC",
+      "Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 22px 80px}
+  h1{font-size:28px;line-height:1.25;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:19px;margin:52px 0 14px;letter-spacing:-.01em}
+  .sub{color:var(--dim);margin:0 0 26px}
+  code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:#1b2534;
+    padding:1px 6px;border-radius:5px;color:#cfe3ff}
+  .lede{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--rose);
+    border-radius:10px;padding:16px 18px;margin:0 0 26px}
+  .lede p{margin:0 0 8px}.lede p:last-child{margin:0}
+  .lede b{color:var(--rose)}
+
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}
+  button{background:#1c2738;color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}
+  button:hover{background:#243349;border-color:#35486a}
+  button.on{background:#1d3a52;border-color:#3d6f9c;color:#cfe9ff}
+  .clock{margin-left:auto;color:var(--dim);font:13px ui-monospace,Menlo,monospace}
+  .sep{width:1px;height:22px;background:var(--line)}
+
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:940px){.panels{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .phead{padding:12px 15px;border-bottom:1px solid var(--line);display:flex;
+    align-items:baseline;gap:9px;flex-wrap:wrap}
+  .tag{font:11px/1 ui-monospace,Menlo,monospace;letter-spacing:.09em;padding:4px 7px;border-radius:5px}
+  .tag.bad{background:#3a1520;color:#ff8fa8}
+  .tag.good{background:#0f3529;color:#63e3ad}
+  .phead .name{font-weight:600;font-size:15px}
+  .phead .note{color:var(--faint);font-size:12.5px;width:100%;
+    font-family:ui-monospace,Menlo,monospace}
+  canvas{display:block;width:100%;height:auto;background:var(--panel2)}
+  .hud{padding:13px 15px 15px;border-top:1px solid var(--line)}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:12px}
+  .metric{min-width:0}
+  .metric .k{font-size:11px;letter-spacing:.06em;color:var(--faint);text-transform:uppercase}
+  .metric .v{font:20px/1.25 ui-monospace,Menlo,monospace}
+  .metric .v small{font-size:12px;color:var(--dim)}
+  .bar{height:6px;background:#1b2534;border-radius:3px;overflow:hidden;margin-top:5px;display:flex}
+  .bar i{display:block;height:100%}
+  .slots{display:grid;gap:5px;margin-top:2px}
+  .slotrow{display:flex;align-items:center;gap:8px}
+  .slotrow .lbl{font:11px ui-monospace,Menlo,monospace;color:var(--faint);width:74px;flex:none}
+  .cells{display:flex;gap:2px;flex:1}
+  .cells i{flex:1;height:9px;border-radius:2px;background:#1b2534}
+  .verdict{margin-top:12px;font-size:13px;border-radius:8px;padding:8px 11px;
+    background:#1a2333;color:var(--dim);min-height:35px}
+  .verdict.bad{background:#2c1119;color:#ff9db1}
+  .verdict.good{background:#0e2f24;color:#6ee7b0}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 0;color:var(--dim);font-size:13px}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:940px){.two{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h3{margin:0 0 4px;font-size:15px}
+  .card p{margin:0;color:var(--dim);font-size:13.5px}
+  .card .cost{font:26px/1.2 ui-monospace,Menlo,monospace;margin:10px 0 2px}
+  .cost.bad{color:var(--rose)}.cost.good{color:var(--green)}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:940px){.three{grid-template-columns:1fr}}
+  .foot{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
+    color:var(--faint);font-size:12.5px}
+  .foot code{background:#161f2d;color:#9fb6d4}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 data-i18n="h1"></h1>
+  <p class="sub" data-i18n="sub"></p>
+
+  <div class="lede">
+    <p data-i18n="lede1"></p>
+    <p data-i18n="lede2"></p>
+  </div>
+
+  <div class="controls">
+    <button id="btnPlay" class="on"></button>
+    <button id="btnRestart"></button>
+    <button class="spd" data-spd="0.5">0.5×</button>
+    <button class="spd on" data-spd="1">1×</button>
+    <button class="spd" data-spd="3">3×</button>
+    <span class="sep"></span>
+    <button class="lng on" data-lng="zh">中文</button>
+    <button class="lng" data-lng="ko">한국어</button>
+    <span class="clock" id="clock"></span>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="phead">
+        <span class="tag bad">BEFORE</span>
+        <span class="name" data-i18n="beforeName"></span>
+        <span class="note" data-i18n="beforeNote"></span>
+      </div>
+      <canvas id="cvBefore" width="1400" height="900"></canvas>
+      <div class="hud" id="hudBefore"></div>
+    </div>
+    <div class="panel">
+      <div class="phead">
+        <span class="tag good">AFTER</span>
+        <span class="name" data-i18n="afterName"></span>
+        <span class="note" data-i18n="afterNote"></span>
+      </div>
+      <canvas id="cvAfter" width="1400" height="900"></canvas>
+      <div class="hud" id="hudAfter"></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--amber)"></i><span data-i18n="leg1"></span></span>
+    <span><i class="dot" style="background:var(--rose)"></i><span data-i18n="leg2"></span></span>
+    <span><i class="dot" style="background:var(--grey)"></i><span data-i18n="leg3"></span></span>
+    <span><i class="dot" style="background:var(--orange)"></i><span data-i18n="leg4"></span></span>
+    <span><i class="dot" style="background:#3a4356"></i><span data-i18n="leg5"></span></span>
+  </div>
+
+  <h2 data-i18n="h2a"></h2>
+  <div class="two">
+    <div class="card">
+      <h3 data-i18n="scanAh"></h3>
+      <canvas id="cvScanA" width="900" height="260"></canvas>
+      <div class="cost bad" id="costA">0 µs</div>
+      <p data-i18n="scanAp"></p>
+    </div>
+    <div class="card">
+      <h3 data-i18n="scanBh"></h3>
+      <canvas id="cvScanB" width="900" height="260"></canvas>
+      <div class="cost good" id="costB">0 µs</div>
+      <p data-i18n="scanBp"></p>
+    </div>
+  </div>
+
+  <h2 data-i18n="h2b"></h2>
+  <div class="three">
+    <div class="card">
+      <h3><code>mark_dead</code></h3>
+      <p data-i18n="inv1"></p>
+    </div>
+    <div class="card">
+      <h3><code>reassign_owner</code></h3>
+      <p data-i18n="inv2"></p>
+    </div>
+    <div class="card">
+      <h3 data-i18n="inv3h"></h3>
+      <p data-i18n="inv3"></p>
+    </div>
+  </div>
+
+  <div class="foot" data-i18n="foot"></div>
+</div>
+
+<script>
+// ---------- 文案（zh-TW / ko）----------
+const D = {
+  h1: {zh:'玩家身邊突然沒怪了', ko:'플레이어 주변에 몬스터가 사라졌다'},
+  sub:{zh:'怪被留在遠方，位子一直被佔著 —— 這是原因和修法',
+       ko:'몬스터가 멀리 남겨져 자리를 계속 차지한다 —— 원인과 해결 방법'},
+  lede1:{zh:'每個玩家<b>最多同時擁有 27 隻怪</b>。玩家走掉，怪還留在原地 —— 沒人看得到，但<b>位子還被佔著</b>。走掉的速度比打倒的速度快，所以位子只會越來越少。位子滿了，系統就<b>不再給新的怪</b>，玩家身邊變得空空的。',
+         ko:'플레이어 한 명은 <b>최대 27마리</b>를 동시에 가질 수 있습니다. 플레이어가 떠나도 몬스터는 그 자리에 남습니다 —— 아무도 볼 수 없지만 <b>자리는 계속 차지</b>합니다. 떠나는 속도가 잡는 속도보다 빠르니 자리는 계속 줄어듭니다. 자리가 다 차면 시스템은 <b>새 몬스터를 더 주지 않고</b>, 플레이어 주변은 텅 비게 됩니다.'},
+  lede2:{zh:'人一多，<b>全服共用的 1,000 個位子</b>也被這些遠方的怪佔滿。這時<b>所有人</b>都生不出怪了。',
+         ko:'접속자가 많아지면 <b>서버 전체가 공유하는 1,000개 자리</b>까지 이 멀리 남은 몬스터들이 채웁니다. 그러면 <b>모든 플레이어</b>가 몬스터를 받지 못합니다.'},
+  beforeName:{zh:'修之前 — 怪不會自己消失', ko:'수정 전 — 몬스터가 사라지지 않음'},
+  beforeNote:{zh:'全服上限 1,000', ko:'서버 전체 상한 1,000'},
+  afterName:{zh:'修之後 — 沒人靠近就消失', ko:'수정 후 — 아무도 없으면 사라짐'},
+  afterNote:{zh:'60 秒沒人靠近 → 移除 · 全服上限 135,000',
+             ko:'60초간 아무도 없으면 → 제거 · 서버 전체 상한 135,000'},
+  leg1:{zh:'玩家（藍圈 = 看得到的範圍）', ko:'플레이어 (파란 원 = 보이는 범위)'},
+  leg2:{zh:'怪 —— 玩家看得到，打得到', ko:'몬스터 —— 플레이어가 보고 잡을 수 있음'},
+  leg3:{zh:'怪 —— 被留在遠方，沒人看得到，但佔著位子',
+        ko:'몬스터 —— 멀리 남겨져 아무도 못 보지만 자리를 차지'},
+  leg4:{zh:'快被移除了（60 秒倒數）', ko:'곧 제거됨 (60초 카운트다운)'},
+  leg5:{zh:'屍體（不佔位子）', ko:'시체 (자리 차지 안 함)'},
+  h2a:{zh:'那把上限調高就好了吧？不行。', ko:'그럼 상한을 올리면 되지 않나? 안 됩니다.'},
+  scanAh:{zh:'之前：每生一隻怪，就把所有怪數一遍',
+          ko:'이전: 몬스터를 하나 만들 때마다 전부 세어봄'},
+  scanAp:{zh:'怪越多就越慢。13.5 萬隻的時候，生一隻要 <b>422 µs</b>。一次要生 2.5 萬隻的話得花 10.5 秒 —— 比檢查的間隔（10 秒）還久，永遠追不上。',
+          ko:'몬스터가 많아질수록 느려집니다. 13.5만 마리일 때 하나 만드는 데 <b>422 µs</b>. 2.5만 마리를 만들면 10.5초 —— 검사 간격(10초)보다 길어서 영원히 못 따라갑니다.'},
+  scanBh:{zh:'之後：邊改邊記，要問就直接看數字',
+          ko:'이후: 바뀔 때마다 기록해두고, 물어보면 바로 확인'},
+  scanBp:{zh:'生一隻就 +1，死一隻就 −1。要知道幾隻直接讀，永遠是 <b>1.66 µs</b>，快 254 倍。這樣上限才敢從 1,000 拉到 135,000。',
+          ko:'하나 생기면 +1, 하나 죽으면 −1. 몇 마리인지 바로 읽으니 항상 <b>1.66 µs</b>, 254배 빠릅니다. 그래서 상한을 1,000에서 135,000으로 올릴 수 있습니다.'},
+  h2b:{zh:'記數字的三個坑', ko:'숫자를 기록할 때의 함정 세 가지'},
+  inv1:{zh:'怪死掉要馬上 −1。屍體還會躺 30 秒，但不該再佔位子。',
+        ko:'몬스터가 죽으면 바로 −1. 시체는 30초 더 남지만 자리를 차지해선 안 됩니다.'},
+  inv2:{zh:'怪換主人時，舊主人 −1、新主人 +1，兩件事要一起做。',
+        ko:'몬스터 주인이 바뀌면 이전 주인 −1, 새 주인 +1을 함께 처리해야 합니다.'},
+  inv3h:{zh:'屍體回報的移動要忽略', ko:'시체가 보내는 이동 보고는 무시'},
+  inv3:{zh:'不然 client 可以把死掉的怪弄「活」回來，數字就<b>永遠</b>錯了。',
+        ko:'그렇지 않으면 클라이언트가 죽은 몬스터를 다시 "살려" 숫자가 <b>영구히</b> 틀어집니다.'},
+  foot:{zh:'這是縮小版：4 個玩家（3 個走動、1 個站著不動），全服上限縮成 80。位子 27 個、看得到的範圍 43 m、10 秒檢查一次、60 秒寬限、屍體 30 秒都是真實數字。時間快轉 120 倍 —— 真的環境要幾小時才壞，這裡幾分鐘就看得到。左右兩邊玩家走的路線完全一樣。程式碼：<code>server/src/game_state/monster.rs</code>',
+        ko:'축소판입니다: 플레이어 4명(3명은 이동, 1명은 정지), 서버 전체 상한은 80으로 축소. 자리 27개 · 보이는 범위 43 m · 10초마다 검사 · 60초 유예 · 시체 30초는 모두 실제 값입니다. 시간은 120배 빠르게 —— 실제로는 몇 시간 걸리지만 여기서는 몇 분이면 보입니다. 좌우 양쪽 플레이어의 이동 경로는 완전히 같습니다. 코드: <code>server/src/game_state/monster.rs</code>'},
+  // 動態字串
+  pause:{zh:'⏸ 暫停', ko:'⏸ 일시정지'},
+  play:{zh:'▶ 播放', ko:'▶ 재생'},
+  restart:{zh:'↻ 重跑', ko:'↻ 다시 실행'},
+  clock:{zh:'遊戲內時間', ko:'게임 내 시간'},
+  soakEnd:{zh:' — 跑完 2 小時', ko:' — 2시간 완료'},
+  mVisible:{zh:'玩家身邊的怪', ko:'플레이어 주변의 몬스터'},
+  unit:{zh:' 隻', ko:' 마리'},
+  mAlive:{zh:'全服怪數 / 上限', ko:'서버 전체 몬스터 수 / 상한'},
+  mini:{zh:'玩家身邊的怪', ko:'주변의 몬스터'},
+  vGood:{zh:'沒人靠近的怪 60 秒後被移除，位子還回去 → 每個玩家身邊一直都有怪。已移除 $D 隻，打倒 $K 隻。',
+         ko:'아무도 없는 몬스터는 60초 뒤 제거되고 자리를 반환 → 모든 플레이어 주변에 몬스터가 계속 있습니다. 제거 $D마리, 처치 $K마리.'},
+  vCap:{zh:'全服的 $C 個位子滿了 → 現在沒有人拿得到新的怪。',
+        ko:'서버 전체 $C개 자리가 다 찼습니다 → 이제 아무도 새 몬스터를 받지 못합니다.'},
+  vStarved:{zh:'$N 個玩家的位子被遠方的怪佔滿 → 身邊生不出新的怪。',
+            ko:'플레이어 $N명의 자리가 멀리 있는 몬스터로 가득 → 주변에 새 몬스터가 생기지 않습니다.'},
+  vAccum:{zh:'遠方的怪正在累積…', ko:'멀리 남은 몬스터가 쌓이는 중…'},
+};
+let LANG = 'zh';
+const T = k => D[k][LANG];
+
+function applyLang(){
+  document.documentElement.lang = LANG === 'ko' ? 'ko' : 'zh-TW';
+  for(const el of document.querySelectorAll('[data-i18n]')) el.innerHTML = T(el.dataset.i18n);
+  document.getElementById('btnPlay').textContent = T(playing ? 'pause' : 'play');
+  document.getElementById('btnRestart').textContent = T('restart');
+  hudAt = 0;
+}
+
+// ---------- 常數（與伺服器一致，除了縮小的族群數字）----------
+const TICK_S = 10, GRACE_S = 60, CORPSE_S = 30, AOI_M = 43;
+const WORLD_M = 600, TILES = 12, TILE_M = WORLD_M / TILES;
+const SPAWN_MIN_M = 20, SPAWN_MAX_M = 60;
+const RULES = [ // data-src/world.json 的 ambientSpawns，maxPerPlayer 合計 27
+  {t:'scp939', max:8}, {t:'kobold', max:6}, {t:'goblin', max:5},
+  {t:'orc', max:4}, {t:'orc_female', max:4},
+];
+const SLOTS = RULES.reduce((a,r)=>a+r.max,0);
+const CAP_BEFORE = 80, CAP_AFTER = 5400; // 縮放後的 1,000 / 135,000
+const SIM_END_S = 7200; // 2 小時
+const PLAYERS = [
+  {n:'roamer-1', still:false}, {n:'roamer-2', still:false},
+  {n:'roamer-3', still:false}, {n:'stationary', still:true},
+];
+
+function mulberry32(seed){
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), s | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------- 模擬 ----------
+class Sim {
+  constructor(seed, cap, despawn){
+    this.cap = cap; this.despawn = despawn;
+    this.rngMove = mulberry32(seed);      // 兩側完全相同的玩家路徑
+    this.rngSpawn = mulberry32(seed ^ 0x9e37);
+    this.t = 0; this.acc = 0; this.nextId = 1;
+    this.monsters = new Map();
+    this.abandonedSince = new Map();
+    this.alive = 0;                        // registry 的 alive_total
+    this.byOwner = new Map();              // registry 的 alive_by_owner_type
+    this.granted = 0; this.despawned = 0; this.killed = 0;
+    this.history = [];
+    this.players = PLAYERS.map((p,i)=>{
+      const a = i / PLAYERS.length * Math.PI*2, r = WORLD_M*0.3;
+      const x = WORLD_M/2 + Math.cos(a)*r, z = WORLD_M/2 + Math.sin(a)*r;
+      return {...p, i, x, z, tx:x, tz:z};
+    });
+  }
+  key(o,t){ return o+'|'+t }
+  ownedAlive(o,t){ return this.byOwner.get(this.key(o,t)) || 0 }
+
+  spawn(owner, type){
+    const r = this.rngSpawn, ang = r()*Math.PI*2;
+    const d = SPAWN_MIN_M + r()*(SPAWN_MAX_M-SPAWN_MIN_M), p = this.players[owner];
+    const id = this.nextId++;
+    this.monsters.set(id, {id, owner, type,
+      x: Math.max(4, Math.min(WORLD_M-4, p.x + Math.cos(ang)*d)),
+      z: Math.max(4, Math.min(WORLD_M-4, p.z + Math.sin(ang)*d)),
+      dead:false, deadAt:0, born:this.t, hop:r()*Math.PI*2});
+    this.alive++;
+    const k = this.key(owner,type);
+    this.byOwner.set(k, (this.byOwner.get(k)||0)+1);
+    this.granted++;
+  }
+  debit(m){
+    if(m.dead) return;
+    this.alive--;
+    const k = this.key(m.owner,m.type), v = (this.byOwner.get(k)||0)-1;
+    v > 0 ? this.byOwner.set(k,v) : this.byOwner.delete(k);
+  }
+  markDead(m){ this.debit(m); m.dead = true; m.deadAt = this.t; this.killed++ }
+  remove(m){ this.debit(m); this.monsters.delete(m.id); this.abandonedSince.delete(m.id) }
+
+  inAoi(m){
+    for(const p of this.players){
+      const dx = p.x-m.x, dz = p.z-m.z;
+      if(dx*dx+dz*dz <= AOI_M*AOI_M) return true;
+    }
+    return false;
+  }
+
+  move(dt){
+    for(const p of this.players){
+      if(p.still) continue;
+      const dx = p.tx-p.x, dz = p.tz-p.z, d = Math.hypot(dx,dz);
+      if(d < 3){ p.tx = 12 + this.rngMove()*(WORLD_M-24); p.tz = 12 + this.rngMove()*(WORLD_M-24); continue }
+      const step = Math.min(d, 3.0*dt);
+      p.x += dx/d*step; p.z += dz/d*step;
+    }
+  }
+
+  tick(){
+    // 1. 玩家擊殺 AOI 內自己的怪（比拋棄慢得多 —— 這就是 bug 的來源）
+    for(const p of this.players){
+      for(const m of this.monsters.values()){
+        if(m.dead || m.owner !== p.i) continue;
+        const dx = p.x-m.x, dz = p.z-m.z;
+        if(dx*dx+dz*dz <= AOI_M*AOI_M){ this.markDead(m); break }
+      }
+    }
+    // 2. 屍體停留 30s 後移除（早已不佔名額）
+    for(const m of [...this.monsters.values()])
+      if(m.dead && this.t - m.deadAt >= CORPSE_S) this.monsters.delete(m.id);
+    // 3. tick_abandoned_monsters：AOI 內無人達 60s 的地面怪 → despawn
+    const unattended = new Set();
+    for(const m of this.monsters.values())
+      if(!m.dead && !this.inAoi(m)) unattended.add(m.id);
+    for(const id of [...this.abandonedSince.keys()])
+      if(!unattended.has(id)) this.abandonedSince.delete(id);   // 再次被看到 → 停止累計
+    for(const id of unattended)
+      if(!this.abandonedSince.has(id)) this.abandonedSince.set(id, this.t);
+    if(this.despawn){
+      for(const id of [...this.abandonedSince.keys()]){
+        if(this.t - this.abandonedSince.get(id) >= GRACE_S){
+          const m = this.monsters.get(id);
+          if(m){ this.remove(m); this.despawned++ }
+        }
+      }
+    }
+    // 4. tick_monster_spawns：O(1) 對上 registry 計數
+    this.granted = 0;
+    for(const p of this.players) for(const r of RULES){
+      if(this.alive >= this.cap) break;
+      if(this.ownedAlive(p.i, r.t) < r.max) this.spawn(p.i, r.t);
+    }
+    this.history.push(this.visible());
+    if(this.history.length > 260) this.history.shift();
+  }
+
+  visible(){ let n=0; for(const m of this.monsters.values()) if(!m.dead && this.inAoi(m)) n++; return n }
+  starving(){ // 名額滿卻在 AOI 內看不到怪的玩家
+    let n = 0;
+    for(const p of this.players){
+      let vis = 0, held = 0;
+      for(const m of this.monsters.values()){
+        if(m.dead || m.owner !== p.i) continue;
+        held++;
+        const dx=p.x-m.x, dz=p.z-m.z;
+        if(dx*dx+dz*dz <= AOI_M*AOI_M) vis++;
+      }
+      if(vis === 0 && held >= SLOTS-2) n++;
+    }
+    return n;
+  }
+
+  step(dt){
+    if(this.t >= SIM_END_S) return;
+    for(let s=0; s<dt; s+=0.5) this.move(Math.min(0.5, dt-s));
+    this.acc += dt;
+    while(this.acc >= TICK_S && this.t < SIM_END_S){ this.acc -= TICK_S; this.t += TICK_S; this.tick() }
+  }
+}
+
+// ---------- 等角低多邊形繪製 ----------
+// 邏輯像素；backing store 為 2×。網格寬 = 24×HW，須容得下畫布邏輯寬 700。
+const HW = 28, HH = 14, LIFT = 2.0;
+function makeTerrain(seed){
+  const r = mulberry32(seed), h = [], kind = [], props = [];
+  for(let x=0;x<TILES;x++){ h[x]=[]; kind[x]=[];
+    for(let z=0;z<TILES;z++){ h[x][z] = Math.round(r()*3)*4; kind[x][z] = r() }
+  }
+  for(let i=0;i<26;i++){
+    const x = Math.floor(r()*TILES), z = Math.floor(r()*TILES);
+    props.push({x, z, kind: r()<0.68?'tree':'rock', jx:(r()-0.5)*0.5, jz:(r()-0.5)*0.5, s:0.8+r()*0.5});
+  }
+  return {h, kind, props};
+}
+const TER = makeTerrain(7);
+
+function View(cv){
+  const ctx = cv.getContext('2d');
+  const W = cv.width/2, H = cv.height/2;
+  ctx.setTransform(2,0,0,2,0,0);
+  return {ctx, W, H, ox: W/2, oy: 60};
+}
+const iso = (v, xm, zm, lift=0) => {
+  const tx = xm/TILE_M, tz = zm/TILE_M;
+  return [v.ox + (tx-tz)*HW, v.oy + (tx+tz)*HH - lift];
+};
+const tileH = (xm, zm) => {
+  const x = Math.max(0, Math.min(TILES-1, Math.floor(xm/TILE_M)));
+  const z = Math.max(0, Math.min(TILES-1, Math.floor(zm/TILE_M)));
+  return TER.h[x][z];
+};
+function poly(ctx, pts, fill){
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+}
+function drawGround(v){
+  const {ctx} = v;
+  for(let s=0; s<TILES*2-1; s++) for(let x=0;x<TILES;x++){
+    const z = s-x; if(z<0||z>=TILES) continue;
+    const h = TER.h[x][z], k = TER.kind[x][z];
+    const cx = v.ox + (x-z)*HW, cy = v.oy + (x+z)*HH - h;
+    const top = [[cx,cy],[cx+HW,cy+HH],[cx,cy+HH*2],[cx-HW,cy+HH]];
+    const shade = k<0.14 ? '#4b6f4a' : k<0.3 ? '#3f6a52' : k<0.72 ? '#43765a' : '#4c7f60';
+    const D = 14;
+    poly(ctx, [[cx-HW,cy+HH],[cx,cy+HH*2],[cx,cy+HH*2+h+D],[cx-HW,cy+HH+h+D]], '#22392f');
+    poly(ctx, [[cx,cy+HH*2],[cx+HW,cy+HH],[cx+HW,cy+HH+h+D],[cx,cy+HH*2+h+D]], '#1a2c25');
+    poly(ctx, top, shade);
+    ctx.strokeStyle = 'rgba(10,18,14,.30)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(top[0][0],top[0][1]);
+    for(let i=1;i<4;i++) ctx.lineTo(top[i][0],top[i][1]);
+    ctx.closePath(); ctx.stroke();
+  }
+}
+function drawProps(v){
+  const {ctx} = v;
+  for(const p of [...TER.props].sort((a,b)=>(a.x+a.z)-(b.x+b.z))){
+    const xm = (p.x+0.5+p.jx)*TILE_M, zm = (p.z+0.5+p.jz)*TILE_M;
+    const [sx, sy] = iso(v, xm, zm, tileH(xm,zm));
+    if(p.kind === 'tree'){
+      const hgt = 30*p.s;
+      poly(ctx, [[sx-2.5,sy],[sx+2.5,sy],[sx+2,sy-hgt*0.4],[sx-2,sy-hgt*0.4]], '#3d2f26');
+      poly(ctx, [[sx-11*p.s,sy-hgt*0.35],[sx,sy-hgt],[sx+11*p.s,sy-hgt*0.35]], '#2f6b48');
+      poly(ctx, [[sx,sy-hgt],[sx+11*p.s,sy-hgt*0.35],[sx+2,sy-hgt*0.35]], '#26573b');
+    } else {
+      const s = 7*p.s;
+      poly(ctx, [[sx-s,sy],[sx,sy-s*0.9],[sx+s,sy],[sx,sy+s*0.45]], '#6a7183');
+      poly(ctx, [[sx,sy-s*0.9],[sx+s,sy],[sx,sy+s*0.45]], '#525a6b');
+    }
+  }
+}
+function drawAoi(v, p){
+  const {ctx} = v, r = AOI_M/TILE_M;
+  const [sx, sy] = iso(v, p.x, p.z, tileH(p.x,p.z));
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(sx, sy+HH, Math.SQRT2*r*HW, Math.SQRT2*r*HH, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(88,201,255,.075)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(88,201,255,.42)'; ctx.lineWidth = 1.2;
+  ctx.setLineDash([5,4]); ctx.stroke();
+  ctx.restore();
+}
+function drawPlayer(v, p){
+  const {ctx} = v;
+  const [sx, sy] = iso(v, p.x, p.z, tileH(p.x,p.z) + LIFT);
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(sx, sy+HH, 9, 4.5, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,.34)'; ctx.fill(); ctx.restore();
+  const b = sy+HH;
+  poly(ctx, [[sx-6,b-9],[sx,b-12],[sx+6,b-9],[sx+6,b+1],[sx,b+4],[sx-6,b+1]], '#c99a2e');
+  poly(ctx, [[sx,b-12],[sx+6,b-9],[sx+6,b+1],[sx,b+4]], '#a87f20');
+  poly(ctx, [[sx-5,b-9],[sx,b-12],[sx+5,b-9],[sx,b-6]], '#ffd166');
+  poly(ctx, [[sx-5,b-22],[sx,b-25],[sx+5,b-22],[sx+5,b-13],[sx,b-10],[sx-5,b-13]], '#ffd166');
+  poly(ctx, [[sx,b-25],[sx+5,b-22],[sx+5,b-13],[sx,b-10]], '#dcae44');
+  if(p.still){
+    ctx.fillStyle = '#8d9cb3'; ctx.font = '10px ui-monospace,Menlo,monospace';
+    ctx.textAlign = 'center'; ctx.fillText('stationary', sx, b-31);
+  }
+}
+function drawMonster(v, m, state, graceLeft, t){
+  const {ctx} = v;
+  const bob = m.dead ? 0 : Math.sin(t*2 + m.hop)*1.6;
+  const [sx, sy0] = iso(v, m.x, m.z, tileH(m.x,m.z) + LIFT);
+  const b = sy0 + HH - bob;
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(sx, sy0+HH, 7, 3.4, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,.30)'; ctx.fill(); ctx.restore();
+  if(m.dead){
+    ctx.strokeStyle = '#3a4356'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx-4,b-4); ctx.lineTo(sx+4,b+2);
+    ctx.moveTo(sx+4,b-4); ctx.lineTo(sx-4,b+2); ctx.stroke();
+    return;
+  }
+  const top = state==='active' ? '#ef476f' : state==='grace' ? '#ffa94d' : '#5b6472';
+  const dark = state==='active' ? '#b5304f' : state==='grace' ? '#c47a2c' : '#414a58';
+  poly(ctx, [[sx-7,b-4],[sx,b-13],[sx+7,b-4],[sx,b+3]], top);
+  poly(ctx, [[sx,b-13],[sx+7,b-4],[sx,b+3]], dark);
+  ctx.fillStyle = state==='abandoned' ? '#788298' : '#12161f';
+  ctx.fillRect(sx-3.4,b-6,1.9,1.9); ctx.fillRect(sx+1.5,b-6,1.9,1.9);
+  if(state==='grace' && graceLeft != null){
+    ctx.strokeStyle = '#ffa94d'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(sx, b-19, 6, -Math.PI/2, -Math.PI/2 + Math.PI*2*graceLeft);
+    ctx.stroke();
+  }
+  if(state==='abandoned'){
+    ctx.strokeStyle = 'rgba(120,130,152,.6)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(sx, b-18, 5, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(120,130,152,.75)';
+    ctx.beginPath(); ctx.moveTo(sx-3.4,b-21.4); ctx.lineTo(sx+3.4,b-14.6); ctx.stroke();
+  }
+}
+function render(v, sim, t){
+  const {ctx} = v;
+  ctx.clearRect(0,0,v.W,v.H);
+  const g = ctx.createLinearGradient(0,0,0,v.H);
+  g.addColorStop(0,'#101827'); g.addColorStop(1,'#0c1220');
+  ctx.fillStyle = g; ctx.fillRect(0,0,v.W,v.H);
+  drawGround(v);
+  for(const p of sim.players) drawAoi(v, p);
+  drawProps(v);
+  const ents = [];
+  for(const m of sim.monsters.values()) ents.push({s:(m.x+m.z), m});
+  for(const p of sim.players) ents.push({s:(p.x+p.z)+0.01, p});
+  ents.sort((a,b)=>a.s-b.s);
+  for(const e of ents){
+    if(e.p){ drawPlayer(v, e.p); continue }
+    const m = e.m;
+    let state = 'active', grace = null;
+    if(!m.dead && !sim.inAoi(m)){
+      const since = sim.abandonedSince.get(m.id);
+      if(sim.despawn && since != null){
+        state = 'grace';
+        grace = Math.max(0, 1 - (sim.t - since)/GRACE_S);
+      } else state = 'abandoned';
+    }
+    drawMonster(v, m, state, grace, t);
+  }
+  // 迷你趨勢圖：玩家實際看得到的怪
+  const cw = 168, ch = 46, cx = v.W-cw-14, cy = v.H-ch-14;
+  ctx.fillStyle = 'rgba(8,12,20,.78)'; ctx.strokeStyle = '#26314a';
+  ctx.lineWidth = 1; ctx.beginPath();
+  ctx.roundRect(cx, cy, cw, ch, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#8d9cb3'; ctx.font = '9.5px ui-monospace,Menlo,monospace';
+  ctx.textAlign = 'left'; ctx.fillText(T('mini'), cx+8, cy+13);
+  const hist = sim.history, top = SLOTS*sim.players.length*0.55;
+  if(hist.length > 1){
+    ctx.beginPath();
+    hist.forEach((h,i)=>{
+      const px = cx+8 + i/(260-1)*(cw-16);
+      const py = cy+ch-8 - Math.min(1,h/top)*(ch-24);
+      i ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+    });
+    ctx.strokeStyle = sim.despawn ? '#3ddc97' : '#ef476f';
+    ctx.lineWidth = 1.6; ctx.stroke();
+  }
+}
+
+// ---------- HUD ----------
+function hudHtml(sim){
+  const vis = sim.visible(), capPct = Math.min(100, sim.alive/sim.cap*100);
+  const rows = sim.players.map(p=>{
+    let held = 0, visible = 0, grace = 0;
+    for(const m of sim.monsters.values()){
+      if(m.dead || m.owner !== p.i) continue;
+      held++;
+      if(sim.inAoi(m)) visible++;
+      else if(sim.despawn && sim.abandonedSince.has(m.id)) grace++;
+    }
+    const cells = Array.from({length:SLOTS}, (_,i)=>{
+      const c = i < visible ? 'var(--rose)'
+        : i < visible+grace ? 'var(--orange)'
+        : i < held ? 'var(--grey)' : '#1b2534';
+      return `<i style="background:${c}"></i>`;
+    }).join('');
+    return `<div class="slotrow"><span class="lbl">${p.n}</span><div class="cells">${cells}</div></div>`;
+  }).join('');
+  const starved = sim.starving();
+  const verdict = sim.despawn
+    ? `<div class="verdict good">${T('vGood').replace('$D', sim.despawned).replace('$K', sim.killed)}</div>`
+    : (starved > 0 || sim.alive >= sim.cap
+      ? `<div class="verdict bad">${sim.alive >= sim.cap ? T('vCap').replace('$C', sim.cap) : ''}${starved>0 ? T('vStarved').replace('$N', starved) : ''}</div>`
+      : `<div class="verdict">${T('vAccum')}</div>`);
+  return `
+  <div class="metrics">
+    <div class="metric"><div class="k">${T('mVisible')}</div>
+      <div class="v" style="color:${vis===0?'var(--rose)':'var(--ink)'}">${vis}<small>${T('unit')}</small></div></div>
+    <div class="metric"><div class="k">${T('mAlive')}</div>
+      <div class="v">${sim.alive}<small> / ${sim.cap}</small></div>
+      <div class="bar"><i style="width:${capPct}%;background:${capPct>=100?'var(--rose)':'var(--sky)'}"></i></div></div>
+  </div>
+  <div class="slots">${rows}</div>
+  ${verdict}`;
+}
+
+// ---------- 主迴圈 ----------
+const cvB = document.getElementById('cvBefore'), cvA = document.getElementById('cvAfter');
+const vB = View(cvB), vA = View(cvA);
+const hudB = document.getElementById('hudBefore'), hudA = document.getElementById('hudAfter');
+const clock = document.getElementById('clock');
+let simB, simA, playing = true, speed = 1, last = 0, hudAt = 0;
+
+function restart(){
+  simB = new Sim(20260811, CAP_BEFORE, false);
+  simA = new Sim(20260811, CAP_AFTER, true);
+  hudAt = 0;
+}
+restart();
+
+const fmt = s => [Math.floor(s/3600), Math.floor(s%3600/60), Math.floor(s%60)]
+  .map(n=>String(n).padStart(2,'0')).join(':');
+
+function frame(ts){
+  const dtReal = Math.min(0.05, (ts-last)/1000 || 0); last = ts;
+  if(playing){
+    const dt = dtReal * 120 * speed;
+    simB.step(dt); simA.step(dt);
+  }
+  render(vB, simB, ts/1000); render(vA, simA, ts/1000);
+  if(ts - hudAt > 200){
+    hudAt = ts;
+    hudB.innerHTML = hudHtml(simB); hudA.innerHTML = hudHtml(simA);
+    clock.textContent = `${T('clock')} ${fmt(simB.t)} / ${fmt(SIM_END_S)}` +
+      (simB.t >= SIM_END_S ? T('soakEnd') : '');
+  }
+  drawScan(ts/1000);
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('btnPlay').onclick = e => {
+  playing = !playing;
+  e.target.textContent = T(playing ? 'pause' : 'play');
+  e.target.classList.toggle('on', playing);
+};
+document.getElementById('btnRestart').onclick = restart;
+document.querySelectorAll('.spd').forEach(b => b.onclick = () => {
+  speed = +b.dataset.spd;
+  document.querySelectorAll('.spd').forEach(o=>o.classList.toggle('on', o===b));
+});
+document.querySelectorAll('.lng').forEach(b => b.onclick = () => {
+  LANG = b.dataset.lng;
+  document.querySelectorAll('.lng').forEach(o=>o.classList.toggle('on', o===b));
+  applyLang();
+});
+applyLang();
+if((navigator.language || '').toLowerCase().startsWith('ko'))
+  document.querySelector('.lng[data-lng="ko"]').click();
+
+// ---------- O(n) 掃描 vs O(1) 計數 ----------
+const sA = document.getElementById('cvScanA').getContext('2d');
+const sB = document.getElementById('cvScanB').getContext('2d');
+sA.setTransform(2,0,0,2,0,0); sB.setTransform(2,0,0,2,0,0);
+const costA = document.getElementById('costA'), costB = document.getElementById('costB');
+const COLS = 26, ROWS = 7, SW = 450, SH = 130;
+function dots(ctx, headCol){
+  ctx.clearRect(0,0,SW,SH);
+  for(let c=0;c<COLS;c++) for(let r=0;r<ROWS;r++){
+    const x = 12 + c*(SW-30)/(COLS-1), y = 22 + r*(SH-44)/(ROWS-1);
+    const scanned = headCol != null && c <= headCol;
+    ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI*2);
+    ctx.fillStyle = scanned ? '#ef476f' : '#2a3447';
+    ctx.fill();
+  }
+  if(headCol != null){
+    const x = 12 + headCol*(SW-30)/(COLS-1);
+    ctx.strokeStyle = 'rgba(239,71,111,.8)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, SH-14); ctx.stroke();
+  }
+  ctx.fillStyle = '#5c6b83'; ctx.font = '10.5px ui-monospace,Menlo,monospace';
+  ctx.fillText('135,000 monsters', 12, SH-2);
+}
+function drawScan(t){
+  const cycle = 2.2, ph = (t % cycle) / cycle;
+  const head = Math.min(COLS-1, Math.floor(ph/0.85*COLS));
+  dots(sA, ph < 0.9 ? head : null);
+  costA.textContent = (ph<0.9 ? Math.round(422*Math.min(1,ph/0.85)) : 422) + ' µs / spawn';
+
+  // 右側：只碰一個計數器
+  sB.clearRect(0,0,SW,SH);
+  for(let c=0;c<COLS;c++) for(let r=0;r<ROWS;r++){
+    const x = 12 + c*(SW-30)/(COLS-1), y = 22 + r*(SH-44)/(ROWS-1);
+    sB.beginPath(); sB.arc(x, y, 3.4, 0, Math.PI*2);
+    sB.fillStyle = '#2a3447'; sB.fill();
+  }
+  const flash = (t % 0.5) / 0.5, hot = flash < 0.35;
+  const bw = 176, bh = 46, bx = (SW-bw)/2, by = (SH-bh)/2 - 4;
+  sB.fillStyle = hot ? 'rgba(61,220,151,.16)' : 'rgba(12,20,30,.9)';
+  sB.strokeStyle = hot ? '#3ddc97' : '#2a3447'; sB.lineWidth = 1.6;
+  sB.beginPath(); sB.roundRect(bx, by, bw, bh, 8); sB.fill(); sB.stroke();
+  sB.fillStyle = '#8d9cb3'; sB.font = '9.5px ui-monospace,Menlo,monospace';
+  sB.textAlign = 'left'; sB.fillText('alive_total', bx+12, by+16);
+  sB.fillStyle = '#e7eef7'; sB.font = '18px ui-monospace,Menlo,monospace';
+  sB.fillText('135,000', bx+12, by+36);
+  sB.fillStyle = hot ? '#3ddc97' : '#3c4a60';
+  sB.font = '13px ui-monospace,Menlo,monospace';
+  sB.fillText('+1', bx+bw-30, by+30);
+  sB.fillStyle = '#5c6b83'; sB.font = '10.5px ui-monospace,Menlo,monospace';
+  sB.fillText('alive_by_owner_type[(owner, type)] += 1', 12, SH-2);
+  costB.textContent = '1.66 µs / spawn';
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

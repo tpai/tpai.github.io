@@ -86,8 +86,3 @@ typings/
 
 # DynamoDB Local files
 .dynamodb/
-
-# Output files
-*.html
-!default.html
-!index.html

@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10.0.0.100/32 — VRRP vs BGP failover</title>
+<style>
+/* ------------------------------------------------------------------
+   Palette provenance: T568B cable pair colours — orange, green, blue,
+   brown — used as a semantic system rather than decoration.
+   orange = control plane · green = data plane · blue = layer 2
+   rust   = fault        · amber = the virtual address itself
+------------------------------------------------------------------- */
+:root{
+  --ink:#0D1014;
+  --bay:#141920;
+  --bay-2:#1A2029;
+  --rule:#222A34;
+  --rule-2:#2E3844;
+  --chalk:#DDE3EB;
+  --mute:#7E8998;
+  --dim:#4A5461;
+
+  --ctl:#F08A2C;      /* control plane: VRRP advert, BGP UPDATE   */
+  --data:#3FBF87;     /* data plane: live traffic                 */
+  --l2:#5BA8F5;       /* layer 2: ARP, virtual MAC                */
+  --fault:#E4574C;    /* the fault and everything downstream of it*/
+  --vip:#FFCE5C;      /* 10.0.0.100 — the contested address       */
+
+  /* Latin resolves to the mono/sans faces; CJK falls through to the TC faces,
+     so numerals and protocol literals keep their monospace identity. */
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,
+         "PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Inter,
+         "PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",sans-serif;
+
+  --pad:clamp(16px,3.2vw,34px);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+html{-webkit-text-size-adjust:100%;}
+
+body{
+  background:var(--ink);
+  color:var(--chalk);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.55;
+  min-height:100vh;
+  /* schematic sheet: one decoration, kept faint */
+  background-image:
+    linear-gradient(var(--rule) 1px,transparent 1px),
+    linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+  background-size:64px 64px,64px 64px;
+  background-position:-1px -1px;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 0%,transparent 30%,var(--ink) 100%);
+}
+
+.sheet{position:relative;max-width:1180px;margin:0 auto;padding:var(--pad) var(--pad) 56px;}
+
+/* ---------------- masthead ---------------- */
+.masthead{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;gap:24px 40px;
+  padding:clamp(20px,4vw,44px) 0 clamp(20px,3vw,32px);
+  border-bottom:1px solid var(--rule-2);
+}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--mute);
+  margin-bottom:14px;
+}
+.addr{
+  font-family:var(--mono);font-weight:700;
+  font-size:clamp(2.4rem,7.6vw,4.9rem);
+  line-height:.94;letter-spacing:-.035em;
+  color:var(--chalk);
+  font-variant-numeric:tabular-nums;
+}
+.addr .suffix{color:var(--dim);}
+.lede{max-width:46ch;margin-top:18px;color:var(--mute);font-size:14.5px;}
+.lede em{color:var(--chalk);font-style:normal;}
+
+/* ---------------- console ---------------- */
+.console{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-self:end;}
+.btn{
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;
+  color:var(--chalk);background:var(--bay);
+  border:1px solid var(--rule-2);border-radius:2px;
+  padding:9px 14px;cursor:pointer;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.btn:hover{border-color:var(--mute);}
+.btn.primary{color:var(--fault);border-color:color-mix(in srgb,var(--fault) 45%,var(--rule-2));}
+.btn.primary:hover{background:color-mix(in srgb,var(--fault) 12%,var(--bay));}
+.btn.primary[data-armed="restore"]{color:var(--data);border-color:color-mix(in srgb,var(--data) 45%,var(--rule-2));}
+.btn.primary[data-armed="restore"]:hover{background:color-mix(in srgb,var(--data) 12%,var(--bay));}
+.lang{display:flex;}
+.lang-btn{border-radius:0;padding:9px 11px;color:var(--dim);}
+.lang-btn:first-child{border-radius:2px 0 0 2px;}
+.lang-btn:last-child{border-radius:0 2px 2px 0;border-left-width:0;}
+.lang-btn[aria-pressed="true"]{color:var(--chalk);background:var(--bay-2);border-color:var(--mute);}
+.lang-btn[aria-pressed="true"]+.lang-btn{border-left-color:var(--mute);}
+.rate{display:flex;align-items:center;gap:9px;padding-left:4px;}
+.rate label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);}
+.rate output{font-family:var(--mono);font-size:11.5px;color:var(--chalk);width:3.2em;font-variant-numeric:tabular-nums;}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:92px;height:2px;
+  background:var(--rule-2);border-radius:2px;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--chalk);border:none;
+}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border:none;border-radius:50%;background:var(--chalk);}
+:focus-visible{outline:2px solid var(--vip);outline-offset:2px;}
+
+/* ---------------- panes ---------------- */
+.panes{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--rule-2);
+  border-bottom:1px solid var(--rule-2);
+}
+.pane{background:var(--ink);display:flex;flex-direction:column;min-width:0;}
+
+.pane-head{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:baseline;gap:14px;
+  padding:22px var(--pad) 18px;
+}
+.proto{
+  font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.02em;
+  color:var(--chalk);
+}
+.proto-sub{font-size:12.5px;color:var(--mute);line-height:1.35;}
+.chip{
+  font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+  padding:4px 9px;border-radius:2px;border:1px solid;
+  color:var(--data);border-color:color-mix(in srgb,var(--data) 40%,transparent);
+  background:color-mix(in srgb,var(--data) 9%,transparent);
+}
+.chip[data-state="fault"]{
+  color:var(--fault);border-color:color-mix(in srgb,var(--fault) 45%,transparent);
+  background:color-mix(in srgb,var(--fault) 10%,transparent);
+}
+.chip[data-state="wait"]{
+  color:var(--ctl);border-color:color-mix(in srgb,var(--ctl) 40%,transparent);
+  background:color-mix(in srgb,var(--ctl) 9%,transparent);
+}
+
+.stage{padding:0 var(--pad);}
+.stage svg{display:block;width:100%;height:auto;}
+
+/* ---------------- decision table ---------------- */
+.tbl{
+  width:calc(100% - var(--pad) * 2);margin:20px var(--pad) 0;
+  border-collapse:collapse;font-family:var(--mono);font-size:11.5px;
+  font-variant-numeric:tabular-nums;
+}
+.tbl caption{
+  text-align:left;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--mute);padding-bottom:8px;
+}
+.tbl th{
+  text-align:left;font-weight:600;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);
+  padding:0 10px 7px;border-bottom:1px solid var(--rule);
+}
+.tbl td{padding:8px 10px;color:var(--mute);border-bottom:1px solid var(--rule);}
+.tbl tbody tr td:first-child{
+  color:var(--mute);box-shadow:inset 2px 0 0 transparent;font-weight:600;
+  transition:box-shadow .2s,color .2s;
+}
+.tbl tbody tr[data-win="1"] td{color:var(--chalk);}
+.tbl tbody tr[data-win="1"] td:first-child{box-shadow:inset 2px 0 0 var(--data);}
+.tbl tbody tr[data-win="1"] .state{color:var(--data);}
+.tbl tbody tr[data-down="1"] td{color:var(--dim);}
+.tbl tbody tr[data-down="1"] .state{color:var(--fault);}
+.tbl .state{letter-spacing:.1em;text-transform:uppercase;font-size:10px;}
+
+/* ---------------- log ---------------- */
+.log{
+  list-style:none;margin:18px var(--pad) 26px;padding-top:14px;
+  border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;line-height:1.75;
+  min-height:7em;
+}
+.log li{display:flex;gap:12px;color:var(--mute);}
+.log li:last-child{color:var(--chalk);}
+.log .ts{color:var(--dim);flex:none;width:6em;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.log li[data-tone="fault"] .msg{color:var(--fault);}
+.log li[data-tone="ctl"] .msg{color:var(--ctl);}
+.log li[data-tone="l2"] .msg{color:var(--l2);}
+.log li[data-tone="data"] .msg{color:var(--data);}
+
+/* ---------------- signature: convergence strip ---------------- */
+.clock{padding:clamp(26px,4vw,40px) 0 0;}
+.clock-head{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;
+  margin-bottom:22px;
+}
+.clock-head h2{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--chalk);
+}
+.clock-head p{font-size:12.5px;color:var(--mute);}
+.elapsed{
+  margin-left:auto;font-family:var(--mono);font-size:12px;
+  color:var(--dim);font-variant-numeric:tabular-nums;letter-spacing:.06em;
+}
+.elapsed b{color:var(--vip);font-weight:600;}
+
+.axis{
+  position:relative;height:22px;margin-left:64px;
+  border-bottom:1px solid var(--rule-2);
+}
+.axis .tick{position:absolute;bottom:0;transform:translateX(-50%);}
+.axis .tick::after{
+  content:"";position:absolute;left:50%;bottom:-4px;width:1px;height:4px;background:var(--rule-2);
+}
+.axis .tick span{
+  font-family:var(--mono);font-size:10px;color:var(--dim);
+  letter-spacing:.06em;font-variant-numeric:tabular-nums;
+}
+.axis .fault-line{
+  position:absolute;left:0;top:-2px;bottom:-128px;width:1px;
+  background:linear-gradient(var(--fault),color-mix(in srgb,var(--fault) 10%,transparent));
+}
+
+.lane{display:grid;grid-template-columns:64px minmax(0,1fr);gap:0 0;padding:16px 0 0;}
+.lane-name{
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mute);padding-top:1px;
+}
+.lane-body{position:relative;min-width:0;}
+.bar-rail{position:relative;height:9px;background:var(--bay);border-radius:1px;}
+.bar{
+  position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;
+  background:repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb,var(--fault) 34%,transparent) 0 4px,
+    transparent 4px 8px);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fault) 40%,transparent);
+}
+.bar-cap{
+  position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fault);
+  opacity:0;transition:opacity .2s;
+}
+.mark{
+  position:absolute;top:-3px;width:1px;height:15px;
+  background:var(--dim);opacity:0;transition:opacity .25s;
+  transform:translateX(-.5px);
+}
+.mark[data-on="1"]{opacity:1;}
+.mark[data-tone="ctl"]{background:var(--ctl);}
+.mark[data-tone="l2"]{background:var(--l2);}
+.mark[data-tone="data"]{background:var(--data);}
+.mark[data-tone="fault"]{background:var(--fault);}
+.lane-legend{
+  margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--dim);
+  display:flex;flex-wrap:wrap;gap:4px 14px;font-variant-numeric:tabular-nums;
+}
+.lane-legend span{opacity:.28;transition:opacity .3s,color .3s;}
+.lane-legend span[data-on="1"]{opacity:1;color:var(--mute);}
+.lane-legend span b{font-weight:600;color:var(--dim);}
+.lane-legend span[data-on="1"] b{color:var(--chalk);}
+.verdict{
+  margin:30px 0 0 64px;padding-top:18px;border-top:1px solid var(--rule);
+  font-size:13.5px;color:var(--mute);max-width:72ch;
+}
+.verdict b{color:var(--chalk);font-weight:500;}
+.verdict .num{font-family:var(--mono);color:var(--vip);font-variant-numeric:tabular-nums;}
+
+/* ---------------- colophon ---------------- */
+.colophon{
+  margin-top:clamp(34px,5vw,54px);padding-top:22px;border-top:1px solid var(--rule-2);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px 40px;
+}
+.key{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;}
+.key span{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mute);display:flex;align-items:center;gap:7px;
+}
+.key i{width:14px;height:2px;display:block;background:currentColor;}
+.key .k-ctl{color:var(--ctl);} .key .k-data{color:var(--data);}
+.key .k-l2{color:var(--l2);}   .key .k-fault{color:var(--fault);}
+.key .k-vip{color:var(--vip);}
+.key .k-vip i{height:8px;border-radius:1px;}
+.assumptions{font-size:12px;color:var(--dim);max-width:62ch;}
+.assumptions em{font-style:normal;color:var(--mute);}   /* CJK has no true italic */
+.assumptions code{font-family:var(--mono);color:var(--mute);}
+
+/* ---------------- svg atoms ---------------- */
+.wire{fill:none;stroke:var(--dim);stroke-width:1.4;}
+.wire.ctl{stroke:var(--ctl);opacity:.5;stroke-dasharray:1 5;stroke-linecap:round;}
+.wire.live{stroke:var(--data);stroke-dasharray:3 6;animation:march .9s linear infinite;}
+.wire.down{stroke:var(--fault);stroke-dasharray:2 4;opacity:.75;}
+@keyframes march{to{stroke-dashoffset:-18;}}
+
+.node rect{transition:stroke .25s,fill .25s;}
+.node .name{font-family:var(--mono);font-size:13px;font-weight:700;fill:var(--chalk);letter-spacing:-.01em;}
+.node .sub{font-family:var(--mono);font-size:9px;font-weight:600;fill:var(--mute);letter-spacing:.14em;}
+.node[data-down="1"] .name{fill:var(--dim);}
+.node[data-down="1"] .sub{fill:var(--fault);}
+.wirelabel{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.14em;fill:var(--ctl);}
+
+.pill rect{transition:opacity .2s;}
+.pill .plate{fill:color-mix(in srgb,var(--vip) 12%,var(--bay-2));stroke:var(--vip);stroke-width:1.2;}
+.pill .txt{font-family:var(--mono);font-size:11px;font-weight:700;fill:var(--vip);letter-spacing:-.01em;}
+.pill .sfx{font-family:var(--mono);font-size:9px;font-weight:600;fill:color-mix(in srgb,var(--vip) 55%,transparent);}
+.trail{stroke:var(--vip);stroke-width:1;fill:none;stroke-linecap:round;}
+
+.pkt .lbl{
+  font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.04em;
+  paint-order:stroke;stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;
+}
+
+/* ---------------- Traditional Chinese ----------------
+   CJK does not take the wide tracking or the uppercasing that the Latin
+   utility labels are set in, so those are relaxed rather than inherited. */
+.key em,.lane-legend em{font-style:normal;}
+html[lang="zh-Hant-TW"] body{line-height:1.75;}
+html[lang="zh-Hant-TW"] .eyebrow,
+html[lang="zh-Hant-TW"] .chip,
+html[lang="zh-Hant-TW"] .tbl caption,
+html[lang="zh-Hant-TW"] .tbl th,
+html[lang="zh-Hant-TW"] .tbl .state,
+html[lang="zh-Hant-TW"] .clock-head h2,
+html[lang="zh-Hant-TW"] .key span{letter-spacing:.05em;text-transform:none;}
+html[lang="zh-Hant-TW"] .tbl,
+html[lang="zh-Hant-TW"] .log{font-size:12px;}
+html[lang="zh-Hant-TW"] .log{line-height:1.9;min-height:7.6em;}
+html[lang="zh-Hant-TW"] .lane-legend{font-size:11px;}
+html[lang="zh-Hant-TW"] .proto-sub,
+html[lang="zh-Hant-TW"] .verdict{letter-spacing:.01em;}
+html[lang="zh-Hant-TW"] .node .sub{font-size:10px;letter-spacing:.03em;}
+html[lang="zh-Hant-TW"] .wirelabel{font-size:9.5px;letter-spacing:.03em;}
+
+@media (max-width:900px){
+  .panes{grid-template-columns:1fr;}
+  .masthead{grid-template-columns:1fr;align-items:start;}
+  .console{justify-self:start;}
+  .verdict{margin-left:0;}
+  .axis{margin-left:0;}
+  .lane{grid-template-columns:1fr;gap:8px;}
+}
+@media (prefers-reduced-motion:reduce){
+  .wire.live{animation:none;stroke-dasharray:3 6;}
+  .trail{display:none;}
+  *{transition-duration:.01ms !important;}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <div>
+      <p class="eyebrow" data-i18n="eyebrow">One virtual address · two control planes</p>
+      <h1 class="addr">10.0.0.100<span class="suffix">/32</span></h1>
+      <p class="lede" data-i18n-html="lede"></p>
+    </div>
+    <div class="console">
+      <div class="lang" role="group" aria-label="Language / 語言">
+        <button class="btn lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        <button class="btn lang-btn" data-lang="zh" aria-pressed="true">繁中</button>
+      </div>
+      <div class="rate">
+        <label for="rate" data-i18n="rate">Rate</label>
+        <input id="rate" type="range" min="0.25" max="2" step="0.25" value="0.25">
+        <output id="rateOut">1.00×</output>
+      </div>
+      <button class="btn" id="playBtn" data-k="btn_pause">Pause</button>
+      <button class="btn primary" id="faultBtn" data-armed="cut" data-k="btn_fail">Fail R1</button>
+      <button class="btn" id="resetBtn" data-i18n="btn_reset">Reset</button>
+    </div>
+  </header>
+
+  <main class="panes">
+
+    <section class="pane">
+      <div class="pane-head">
+        <h2 class="proto">VRRP</h2>
+        <p class="proto-sub" data-i18n="sub_vrrp"></p>
+        <span class="chip" id="chipV" data-state="ok" data-k="chip_master_r1"></span>
+      </div>
+      <div class="stage" id="stageV"></div>
+      <table class="tbl">
+        <caption data-i18n="cap_vrrp"></caption>
+        <thead><tr>
+          <th scope="col" data-i18n="th_node"></th>
+          <th scope="col" data-i18n="th_prio"></th>
+          <th scope="col" data-i18n="th_state"></th>
+        </tr></thead>
+        <tbody>
+          <tr id="vRow1" data-win="1"><td>R1</td><td>100</td><td class="state" data-k="st_master"></td></tr>
+          <tr id="vRow2"><td>R2</td><td>90</td><td class="state" data-k="st_backup"></td></tr>
+        </tbody>
+      </table>
+      <ol class="log" id="logV"></ol>
+    </section>
+
+    <section class="pane">
+      <div class="pane-head">
+        <h2 class="proto">BGP</h2>
+        <p class="proto-sub" data-i18n="sub_bgp"></p>
+        <span class="chip" id="chipB" data-state="ok" data-k="chip_best_1"></span>
+      </div>
+      <div class="stage" id="stageB"></div>
+      <table class="tbl">
+        <caption data-i18n="cap_bgp"></caption>
+        <thead><tr>
+          <th scope="col" data-i18n="th_nexthop"></th>
+          <th scope="col" data-i18n="th_aspath"></th>
+          <th scope="col" data-i18n="th_state"></th>
+        </tr></thead>
+        <tbody>
+          <tr id="bRow1" data-win="1"><td>R1</td><td>65001</td><td class="state" data-k="st_best"></td></tr>
+          <tr id="bRow2"><td>R2</td><td>65002 65002</td><td class="state" data-k="st_backup"></td></tr>
+        </tbody>
+      </table>
+      <ol class="log" id="logB"></ol>
+    </section>
+
+  </main>
+
+  <section class="clock">
+    <div class="clock-head">
+      <h2 data-i18n="clock_h"></h2>
+      <p data-i18n="clock_p"></p>
+      <p class="elapsed" id="elapsed"></p>
+    </div>
+
+    <div class="axis" id="axis"><div class="fault-line"></div></div>
+
+    <div class="lane">
+      <div class="lane-name">VRRP</div>
+      <div class="lane-body">
+        <div class="bar-rail"><div class="bar" id="barV"></div><div class="bar-cap" id="capV"></div></div>
+        <div class="lane-legend" id="legV"></div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <div class="lane-name">BGP</div>
+      <div class="lane-body">
+        <div class="bar-rail"><div class="bar" id="barB"></div><div class="bar-cap" id="capB"></div></div>
+        <div class="lane-legend" id="legB"></div>
+      </div>
+    </div>
+
+    <p class="verdict" id="verdict"></p>
+  </section>
+
+  <footer class="colophon">
+    <div>
+      <p class="eyebrow" style="margin-bottom:12px" data-i18n="key_h"></p>
+      <div class="key">
+        <span class="k-data"><i></i><em data-i18n="key_data"></em></span>
+        <span class="k-ctl"><i></i><em data-i18n="key_ctl"></em></span>
+        <span class="k-l2"><i></i><em data-i18n="key_l2"></em></span>
+        <span class="k-fault"><i></i><em data-i18n="key_fault"></em></span>
+        <span class="k-vip"><i></i><em data-i18n="key_vip"></em></span>
+      </div>
+    </div>
+    <p class="assumptions" id="assumptions"></p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ========================================================================
+   i18n — English and Traditional Chinese (Taiwan).
+   Protocol literals that appear on the wire (GET /, UPDATE, who-has,
+   is-at, GARP, eBGP, AS numbers, MAC addresses) stay untranslated in both
+   languages, which is how they are read in practice.
+   ===================================================================== */
+var STR={
+en:{
+  title:"10.0.0.100/32 — VRRP vs BGP failover",
+  eyebrow:"One virtual address · two control planes",
+  lede:'Fail the same router twice. <em>VRRP</em> defends the address at layer&nbsp;2 by '+
+       'moving a virtual MAC; <em>BGP</em> defends it at layer&nbsp;3 by withdrawing a route. '+
+       'The mechanisms differ — but what you feel is the difference in <em>clocks</em>.',
+  rate:"Rate",
+  btn_pause:"Pause", btn_resume:"Resume",
+  btn_fail:"Fail R1", btn_restore:"Restore R1",
+  btn_reset:"Reset",
+
+  sub_vrrp:"Layer 2 — the two routers elect a master between themselves.",
+  sub_bgp:"Layer 3 — the edge router picks a best path and installs it.",
+  cap_vrrp:"Virtual router 1 — election",
+  cap_bgp:"RIB — 10.0.0.100/32",
+  th_node:"Node", th_prio:"Priority", th_state:"State",
+  th_nexthop:"Next hop", th_aspath:"AS path",
+  st_master:"Master", st_backup:"Backup", st_best:"Best", st_down:"Down",
+
+  chip_master_r1:"Master R1", chip_master_r2:"Master R2", chip_wait:"Waiting on timer",
+  chip_best_1:"Best AS 65001", chip_best_2:"Best AS 65002", chip_recompute:"Recomputing",
+
+  /* topology */
+  n_client:"CLIENT", n_clients:"CLIENTS", n_internet:"INTERNET",
+  n_switch:"SWITCH", n_layer2:"LAYER 2",
+  n_master:"MASTER", n_backup:"BACKUP", n_backend:"BACKEND", n_down:"DOWN",
+  n_advert:"ADVERT · 224.0.0.18",
+  alt_vrrp:"VRRP topology: a client, a layer 2 switch, routers R1 and R2 sharing a virtual IP, and two backends.",
+  alt_bgp:"BGP topology: clients, an edge router, routers R1 in AS 65001 and R2 in AS 65002 announcing an anycast prefix, and two backends.",
+
+  /* packet labels */
+  p_advert:"VRRP advert",
+
+  /* logs */
+  lv_nom1:"R1 master, priority 100 · owns vMAC 00-00-5e-00-01-01",
+  lv_nom2:"Advertisements every 1.00 s on 224.0.0.18",
+  lb_nom1:"eBGP up: R_EDGE ↔ R1, R_EDGE ↔ R2",
+  lb_nom2:"AS 65002 prepends; R1 wins on AS-path length",
+  lv_down:"R1 down — advertisements stop",
+  lb_down:"Carrier lost on R_EDGE ↔ R1",
+  lv_promote:"3 adverts missed — R2 promotes itself",
+  lv_garp:"Gratuitous ARP ×3 — switch relearns the MAC",
+  lv_up:"Traffic restored via R2 → S2",
+  lb_session:"Session torn down — fast-external-failover",
+  lb_recompute:"Path via R1 withdrawn — recomputing best path",
+  lb_install:"FIB installed: 10.0.0.100/32 via R2 (65002 65002)",
+  lv_rback:"R1 back up as backup — preempt enabled",
+  lb_rback:"Link restored — eBGP re-establishing",
+  lv_preempt:"R1 preempts — second brief outage while ARP settles",
+  lv_home:"Traffic back on R1 → S1",
+  lb_readvert:"R1 re-advertises the prefix",
+  lb_reconverge:"Best path back to R1 — no packet loss on the way back",
+
+  /* convergence strip */
+  clock_h:"Convergence",
+  clock_p:"Both lanes measured from the same fault, at t = 0.",
+  unit_s:"s",
+  standby:"standing by",
+  converged:"converged · vrrp <b>%V%</b> · bgp <b>%B%</b>",
+  running:"t = <b>+%T% s</b>",
+  ev_v0:"master down", ev_v1:"master-down timer expires",
+  ev_v2:"gratuitous ARP ×3", ev_v3:"switch relearned · traffic up",
+  ev_b0:"carrier loss", ev_b1:"eBGP session down",
+  ev_b2:"best-path recompute", ev_b3:"FIB installed · traffic up",
+
+  verdict:'<b>The hold-down timer is the whole difference.</b> BGP learns the neighbour is '+
+          'gone from the interface itself and reconverges in <span class="num">%B%</span>. '+
+          'VRRP has no such signal — the backup must wait out three missed advertisements '+
+          'before it dares promote, then flood gratuitous ARP so the switch relearns the '+
+          'MAC: <span class="num">%V%</span>.',
+
+  key_h:"Key",
+  key_data:"Data plane", key_ctl:"Control plane", key_l2:"Layer 2 / ARP",
+  key_fault:"Fault", key_vip:"The address",
+  assumptions:'Timings are modelled, not captured. VRRP assumes the default '+
+    '<code>advertisement_interval 1 s</code> with a three-interval master-down timer; '+
+    'BGP assumes <code>fast-external-failover</code>, so the session drops when the '+
+    'directly-connected neighbour goes away rather than waiting out the 90-second hold '+
+    'timer. Change either assumption and the bars change with it. Note that failing the '+
+    '<em>router</em> is the fair test: cutting only R1’s downstream link would leave VRRP '+
+    'advertising happily into a black hole unless interface tracking is configured.'
+},
+zh:{
+  title:"10.0.0.100/32 — VRRP 與 BGP 備援切換",
+  eyebrow:"一個虛擬位址 · 兩種控制平面",
+  lede:'讓同一台路由器故障兩次。<em>VRRP</em> 在第二層搬移虛擬 MAC 來守住這個位址；'+
+       '<em>BGP</em> 則在第三層撤回路由。兩者的機制不同 —— 但你真正感受到的，'+
+       '是<em>計時器</em>的差別。',
+  rate:"速率",
+  btn_pause:"暫停", btn_resume:"繼續",
+  btn_fail:"讓 R1 故障", btn_restore:"復原 R1",
+  btn_reset:"重設",
+
+  sub_vrrp:"第二層 —— 兩台路由器彼此推選出主控端。",
+  sub_bgp:"第三層 —— 邊界路由器選出最佳路徑並寫入轉送表。",
+  cap_vrrp:"虛擬路由器 1 —— 選舉結果",
+  cap_bgp:"RIB —— 10.0.0.100/32",
+  th_node:"節點", th_prio:"優先權", th_state:"狀態",
+  th_nexthop:"下一跳", th_aspath:"AS 路徑",
+  st_master:"主控", st_backup:"備援", st_best:"最佳", st_down:"離線",
+
+  chip_master_r1:"主控 R1", chip_master_r2:"主控 R2", chip_wait:"等待計時器",
+  chip_best_1:"最佳 AS 65001", chip_best_2:"最佳 AS 65002", chip_recompute:"重新計算中",
+
+  n_client:"用戶端", n_clients:"用戶端", n_internet:"網際網路",
+  n_switch:"交換器", n_layer2:"第二層",
+  n_master:"主控", n_backup:"備援", n_backend:"後端", n_down:"離線",
+  n_advert:"通告 · 224.0.0.18",
+  alt_vrrp:"VRRP 拓撲：用戶端、第二層交換器、共用虛擬 IP 的 R1 與 R2 兩台路由器，以及兩台後端主機。",
+  alt_bgp:"BGP 拓撲：用戶端、邊界路由器、分屬 AS 65001 與 AS 65002 並通告同一段 anycast 前綴的 R1 與 R2，以及兩台後端主機。",
+
+  p_advert:"VRRP 通告",
+
+  lv_nom1:"R1 為主控，優先權 100 · 持有 vMAC 00-00-5e-00-01-01",
+  lv_nom2:"每 1.00 秒向 224.0.0.18 送出通告",
+  lb_nom1:"eBGP 已建立：R_EDGE ↔ R1、R_EDGE ↔ R2",
+  lb_nom2:"AS 65002 有 prepend；R1 以較短的 AS 路徑勝出",
+  lv_down:"R1 故障 —— 通告中斷",
+  lb_down:"R_EDGE ↔ R1 失去實體連線",
+  lv_promote:"連續 3 次未收到通告 —— R2 自行升為主控",
+  lv_garp:"Gratuitous ARP ×3 —— 交換器重新學習 MAC",
+  lv_up:"流量改由 R2 → S2 恢復",
+  lb_session:"連線中斷 —— fast-external-failover 立即生效",
+  lb_recompute:"經由 R1 的路徑已撤回 —— 重新計算最佳路徑",
+  lb_install:"已寫入 FIB：10.0.0.100/32 經由 R2（65002 65002）",
+  lv_rback:"R1 復原，先以備援身分加入 —— 已啟用 preempt",
+  lb_rback:"連線復原 —— eBGP 重新建立中",
+  lv_preempt:"R1 搶回主控 —— ARP 收斂期間會再短暫中斷一次",
+  lv_home:"流量回到 R1 → S1",
+  lb_readvert:"R1 重新通告該前綴",
+  lb_reconverge:"最佳路徑回到 R1 —— 回切過程沒有封包遺失",
+
+  clock_h:"收斂時間",
+  clock_p:"兩條軌都從同一次故障 t = 0 起算。",
+  unit_s:"秒",
+  standby:"待命中",
+  converged:"已收斂 · vrrp <b>%V%</b> · bgp <b>%B%</b>",
+  running:"t = <b>+%T% 秒</b>",
+  ev_v0:"主控故障", ev_v1:"主控逾時計時器到期",
+  ev_v2:"gratuitous ARP ×3", ev_v3:"交換器重新學習 · 流量恢復",
+  ev_b0:"失去實體連線", ev_b1:"eBGP 連線中斷",
+  ev_b2:"重新計算最佳路徑", ev_b3:"寫入 FIB · 流量恢復",
+
+  verdict:'<b>差別全在那個等待計時器。</b>BGP 直接從介面就知道鄰居消失了，'+
+          '<span class="num">%B%</span>完成收斂。VRRP 沒有這種訊號 —— 備援端必須等到'+
+          '連續三次沒收到通告才敢接手，接著再洪泛 gratuitous ARP 讓交換器重新學習 MAC，'+
+          '總共花了 <span class="num">%V%</span>。',
+
+  key_h:"圖例",
+  key_data:"資料平面", key_ctl:"控制平面", key_l2:"第二層 / ARP",
+  key_fault:"故障", key_vip:"這個位址",
+  assumptions:'時間為模型推估，並非實測。VRRP 採用預設的 '+
+    '<code>advertisement_interval 1 s</code>，主控逾時計時器為三個間隔；'+
+    'BGP 假設已啟用 <code>fast-external-failover</code>，因此直連鄰居消失時連線立即中斷，'+
+    '不必等滿 90 秒的 hold timer。改動任一項假設，長條圖也會跟著變。另外，'+
+    '讓<em>整台路由器</em>故障才是公平的測試：若只切斷 R1 的下游鏈路，'+
+    '除非設定了介面追蹤，VRRP 會繼續愉快地對著黑洞送通告。'
+}
+};
+
+var LANG="zh";
+try{ var saved=localStorage.getItem("vip-demo-lang"); if(saved&&STR[saved]) LANG=saved; }catch(e){}
+
+function t(k){
+  var v=STR[LANG]&&STR[LANG][k];
+  if(v!==undefined) return v;
+  v=STR.en[k];
+  return v!==undefined?v:k;          /* unknown keys pass through: "R1", "S1" … */
+}
+function fmt(str,vals){
+  return str.replace(/%([A-Z])%/g,function(m,k){ return vals[k]!==undefined?vals[k]:m; });
+}
+function secs(x){ return x.toFixed(2)+" "+t("unit_s"); }
+function convVals(){ return {V:secs(CONV.vrrp),B:secs(CONV.bgp)}; }
+
+/* SVG text has no data-attributes to walk, so translatable nodes register here. */
+var REG=[];
+function reg(el,key){ var r={el:el,key:key}; REG.push(r); el.textContent=t(key); return r; }
+
+/* ============================== svg helpers ============================== */
+var NS="http://www.w3.org/2000/svg";
+function E(tag,attrs,parent){
+  var e=document.createElementNS(NS,tag);
+  if(attrs) for(var k in attrs) e.setAttribute(k,attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function T(parent,x,y,str,cls,extra){
+  var e=E("text",{x:x,y:y,"text-anchor":"middle",class:cls||""},parent);
+  e.textContent=str;
+  if(extra) for(var k in extra) e.setAttribute(k,extra[k]);
+  return e;
+}
+function d(pts){ return pts.map(function(p,i){return (i?"L":"M")+p[0]+" "+p[1];}).join(" "); }
+function along(pts,u){
+  if(u<=0) return {x:pts[0][0],y:pts[0][1]};
+  var seg=[],total=0,i;
+  for(i=0;i<pts.length-1;i++){
+    var l=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);
+    seg.push(l); total+=l;
+  }
+  if(!total) return {x:pts[0][0],y:pts[0][1]};
+  if(u>=1){var L=pts[pts.length-1];return {x:L[0],y:L[1]};}
+  var run=u*total;
+  for(i=0;i<seg.length;i++){
+    if(run<=seg[i]||i===seg.length-1){
+      var f=seg[i]?run/seg[i]:0;
+      return {x:pts[i][0]+(pts[i+1][0]-pts[i][0])*f,
+              y:pts[i][1]+(pts[i+1][1]-pts[i][1])*f};
+    }
+    run-=seg[i];
+  }
+  var Z=pts[pts.length-1];return {x:Z[0],y:Z[1]};
+}
+function ease(x){return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;}
+function rev(pts){return pts.slice().reverse();}
+
+/* ============================== geometry ==============================
+   Both panes share one skeleton, so the only visible difference between
+   them is where the failover decision is made.                          */
+var W=520,H=316;
+var SRC={x:22,y:14,w:96,h:42},   HUB={x:198,y:14,w:126,h:42};
+var R1 ={x:44,y:164,w:128,h:76}, R2 ={x:348,y:164,w:128,h:76};
+var S1 ={x:44,y:272,w:128,h:34}, S2 ={x:348,y:272,w:128,h:34};
+
+var LINK={
+  src : [[118,35],[198,35]],
+  hub1: [[232,56],[232,140],[108,140],[108,164]],
+  hub2: [[288,56],[288,140],[412,140],[412,164]],
+  r1s1: [[108,240],[108,272]],
+  r2s2: [[412,240],[412,272]],
+  pair: [[172,204],[348,204]]
+};
+var PATH={
+  data1: [[70,35],[232,35],[232,140],[108,140],[108,280]],
+  data2: [[70,35],[288,35],[288,140],[412,140],[412,280]],
+  arp1 : [[70,35],[232,35],[232,140],[108,140],[108,186]],
+  up1  : [[108,186],[108,140],[232,140],[232,35],[262,35]],
+  up2  : [[412,186],[412,140],[288,140],[288,35],[262,35]]
+};
+
+/* ============================== svg atoms ============================== */
+function node(svg,box,nameKey,subKey,tone){
+  var g=E("g",{class:"node"},svg);
+  var r=E("rect",{x:box.x,y:box.y,width:box.w,height:box.h,rx:3,
+                  fill:"var(--bay)",stroke:"var(--rule-2)","stroke-width":1.2},g);
+  E("rect",{x:box.x,y:box.y+3,width:2,height:box.h-6,fill:"var(--"+tone+")",opacity:.85},g);
+  var cx=box.x+box.w/2;
+  var nameY=box.h>60?box.y+box.h-26:box.y+box.h/2+(subKey?-1:4);
+  reg(T(g,cx,nameY,"","name"),nameKey);
+  var subReg=subKey?reg(T(g,cx,nameY+15,"","sub"),subKey):null;
+  return {
+    setSub:function(key){ if(subReg){ subReg.key=key; subReg.el.textContent=t(key); } },
+    fail:function(){
+      g.setAttribute("data-down","1");
+      r.setAttribute("stroke","var(--fault)");
+      r.setAttribute("fill","color-mix(in srgb,var(--fault) 7%,var(--bay))");
+    },
+    heal:function(){
+      g.removeAttribute("data-down");
+      r.setAttribute("stroke","var(--rule-2)");
+      r.setAttribute("fill","var(--bay)");
+    }
+  };
+}
+function link(svg,pts,cls){
+  var p=E("path",{d:d(pts),class:"wire"+(cls?" "+cls:"")},svg);
+  var base="wire"+(cls?" "+cls:"");
+  return {el:p,set:function(state){ p.setAttribute("class",state?base+" "+state:base); }};
+}
+function pill(svg){
+  var g=E("g",{class:"pill"},svg), wrap=E("g",{},g);
+  E("rect",{x:-52,y:-12,width:104,height:24,rx:2,class:"plate"},wrap);
+  T(wrap,-8,3.5,"10.0.0.100","txt");
+  T(wrap,36,3.5,"/32","sfx");
+  return g;
+}
+function packet(layer,color,label){
+  var g=E("g",{class:"pkt",opacity:0},layer);
+  E("circle",{r:3.2,fill:"var(--"+color+")"},g);
+  if(label){
+    var lines=String(label).split("\n");
+    for(var i=0;i<lines.length;i++)
+      T(g,0,-9-(lines.length-1-i)*10,lines[i],"lbl",{fill:"var(--"+color+")"});
+  }
+  return g;
+}
+
+/* ============================== scene ============================== */
+function scene(hostId,cfg){
+  var svg=E("svg",{viewBox:"0 0 "+W+" "+H,role:"img"},document.getElementById(hostId));
+  var wires=E("g",{},svg), nodes=E("g",{},svg);
+  var trail=E("path",{class:"trail",opacity:0},svg);
+  var pillLayer=E("g",{},svg), pktLayer=E("g",{},svg);
+
+  var L={
+    src : link(wires,LINK.src),
+    hub1: link(wires,LINK.hub1),
+    hub2: link(wires,LINK.hub2),
+    r1s1: link(wires,LINK.r1s1),
+    r2s2: link(wires,LINK.r2s2)
+  };
+  if(cfg.pairLink) L.pair=link(wires,LINK.pair,"ctl");
+  else { L.hub1.set("ctl"); L.hub2.set("ctl"); }
+
+  var N={
+    src:node(nodes,SRC,cfg.srcName,cfg.srcSub,"data"),
+    hub:node(nodes,HUB,cfg.hubName,cfg.hubSub,cfg.hubTone),
+    r1 :node(nodes,R1,"R1",cfg.r1sub,"data"),
+    r2 :node(nodes,R2,"R2",cfg.r2sub,"dim"),
+    s1 :node(nodes,S1,"S1","n_backend","dim"),
+    s2 :node(nodes,S2,"S2","n_backend","dim")
+  };
+
+  if(cfg.pairLink) reg(T(wires,260,199,"","wirelabel"),"n_advert");
+  else{
+    T(wires,232,100,"eBGP","wirelabel",{"text-anchor":"end"});
+    T(wires,288,100,"eBGP","wirelabel",{"text-anchor":"start"});
+  }
+
+  return {
+    svg:svg, altKey:cfg.altKey, L:L, N:N, pill:pill(pillLayer), trail:trail,
+    pktLayer:pktLayer, pkts:[], beat:{data:0,ctl:0,arp:0},
+    home:{r1:{x:108,y:186},r2:{x:412,y:186}},
+    pos:{x:108,y:186}, from:null, to:{x:108,y:186}, u:1
+  };
+}
+
+/* ============================== packets ============================== */
+function emit(sc,pts,opt){
+  opt=opt||{};
+  sc.pkts.push({pts:pts,dur:opt.dur||.72,delay:opt.delay||0,tm:0,drop:opt.drop||0,
+                g:packet(sc.pktLayer,opt.color||"ctl",opt.label||"")});
+}
+function stepPackets(sc,dt){
+  for(var i=sc.pkts.length-1;i>=0;i--){
+    var p=sc.pkts[i]; p.tm+=dt;
+    if(p.tm<p.delay) continue;
+    var u=(p.tm-p.delay)/p.dur;
+    if(u>=1){ p.g.remove(); sc.pkts.splice(i,1); continue; }
+    var pos=along(p.pts,p.drop?u*p.drop:u);
+    p.g.setAttribute("transform","translate("+pos.x.toFixed(1)+" "+pos.y.toFixed(1)+")");
+    if(p.drop&&u>.62){
+      p.g.setAttribute("opacity",Math.max(0,1-(u-.62)/.38).toFixed(2));
+      p.g.firstChild.setAttribute("fill","var(--fault)");
+    } else p.g.setAttribute("opacity",1);
+  }
+}
+function flush(sc){ sc.pkts.forEach(function(p){p.g.remove();}); sc.pkts.length=0; }
+
+/* ============================== the address ============================== */
+function moveVip(sc,target){
+  var home=sc.home[target];
+  if(sc.to.x===home.x&&sc.from===null) return;
+  sc.from={x:sc.pos.x,y:sc.pos.y}; sc.to={x:home.x,y:home.y}; sc.u=0;
+}
+function stepVip(sc,dt){
+  if(sc.from){
+    sc.u=Math.min(1,sc.u+dt/.55);
+    var e=ease(sc.u);
+    sc.pos={x:sc.from.x+(sc.to.x-sc.from.x)*e, y:sc.from.y+(sc.to.y-sc.from.y)*e};
+    sc.trail.setAttribute("d","M"+sc.from.x+" "+sc.from.y+"L"+sc.pos.x+" "+sc.pos.y);
+    sc.trail.setAttribute("opacity",(0.5*(1-sc.u)).toFixed(2));
+    if(sc.u>=1){ sc.from=null; sc.trail.setAttribute("opacity",0); }
+  }
+  sc.pill.setAttribute("transform","translate("+sc.pos.x.toFixed(1)+" "+sc.pos.y.toFixed(1)+")");
+}
+
+/* ============================== logs ============================== */
+function makeLog(id){
+  var ol=document.getElementById(id), rows=[];
+  function render(){
+    ol.textContent="";
+    rows.forEach(function(r){
+      var li=document.createElement("li");
+      li.setAttribute("data-tone",r.tone||"");
+      var ts=document.createElement("span"); ts.className="ts"; ts.textContent=r.stamp;
+      var ms=document.createElement("span"); ms.className="msg"; ms.textContent=t(r.key);
+      li.appendChild(ts); li.appendChild(ms); ol.appendChild(li);
+    });
+  }
+  return {
+    push:function(stamp,key,tone){
+      rows.push({stamp:stamp,key:key,tone:tone});
+      while(rows.length>4) rows.shift();
+      render();
+    },
+    clear:function(){ rows.length=0; render(); },
+    render:render
+  };
+}
+
+/* ============================== timeline ============================== */
+var AXIS=1.8;                                   /* seconds of chart width */
+var EV={
+  vrrp:[[0,"ev_v0","fault"],[0.90,"ev_v1","ctl"],[0.94,"ev_v2","l2"],[1.42,"ev_v3","data"]],
+  bgp :[[0,"ev_b0","fault"],[0.12,"ev_b1","ctl"],[0.38,"ev_b2","ctl"],[0.70,"ev_b3","data"]]
+};
+var CONV={vrrp:1.42,bgp:0.70};
+
+(function buildAxis(){
+  var axis=document.getElementById("axis");
+  for(var s=0;s<=AXIS+0.001;s+=0.3){
+    var el=document.createElement("div");
+    el.className="tick";
+    el.style.left=(s/AXIS*100)+"%";
+    el.innerHTML="<span></span>";
+    el.firstChild.textContent=(s===0?"0":s.toFixed(1));
+    axis.appendChild(el);
+  }
+})();
+
+function buildLane(lane,railId,legId){
+  var rail=document.getElementById(railId).parentNode;
+  var leg=document.getElementById(legId);
+  var marks=[],labels=[];
+  EV[lane].forEach(function(ev){
+    var m=document.createElement("div");
+    m.className="mark"; m.setAttribute("data-tone",ev[2]);
+    m.style.left=(ev[0]/AXIS*100)+"%";
+    rail.appendChild(m); marks.push(m);
+    var s=document.createElement("span");
+    var b=document.createElement("b"); b.textContent=ev[0].toFixed(2)+"s";
+    var x=document.createElement("em");
+    s.appendChild(b); s.appendChild(document.createTextNode(" ")); s.appendChild(x);
+    leg.appendChild(s); labels.push({wrap:s,text:x,key:ev[1]});
+  });
+  return {marks:marks,labels:labels};
+}
+var LANE={vrrp:buildLane("vrrp","barV","legV"), bgp:buildLane("bgp","barB","legB")};
+
+function renderLegend(){
+  ["vrrp","bgp"].forEach(function(lane){
+    LANE[lane].labels.forEach(function(l){ l.text.textContent=t(l.key); });
+  });
+}
+function paintLane(lane,barId,capId,tm){
+  var w=Math.min(tm,CONV[lane]);
+  var bar=document.getElementById(barId), cap=document.getElementById(capId);
+  bar.style.width=(Math.max(0,w)/AXIS*100)+"%";
+  cap.style.left=(Math.max(0,w)/AXIS*100)+"%";
+  cap.style.opacity=(tm>=CONV[lane])?1:0;
+  EV[lane].forEach(function(ev,i){
+    var on=tm>=ev[0]?"1":"0";
+    LANE[lane].marks[i].setAttribute("data-on",on);
+    LANE[lane].labels[i].wrap.setAttribute("data-on",on);
+  });
+}
+function resetLanes(){
+  ["vrrp","bgp"].forEach(function(lane){
+    LANE[lane].marks.forEach(function(m){m.setAttribute("data-on","0");});
+    LANE[lane].labels.forEach(function(l){l.wrap.setAttribute("data-on","0");});
+  });
+  document.getElementById("barV").style.width="0%";
+  document.getElementById("barB").style.width="0%";
+  document.getElementById("capV").style.opacity=0;
+  document.getElementById("capB").style.opacity=0;
+}
+
+/* ============================== build panes ============================== */
+var V=scene("stageV",{
+  altKey:"alt_vrrp",
+  srcName:"n_client", srcSub:"10.0.0.20",
+  hubName:"n_switch", hubSub:"n_layer2", hubTone:"l2",
+  r1sub:"n_master", r2sub:"n_backup", pairLink:true
+});
+var B=scene("stageB",{
+  altKey:"alt_bgp",
+  srcName:"n_clients", srcSub:"n_internet",
+  hubName:"R_EDGE", hubSub:"AS 65000", hubTone:"ctl",
+  r1sub:"AS 65001", r2sub:"AS 65002", pairLink:false
+});
+
+var logV=makeLog("logV"), logB=makeLog("logB");
+var chipV=document.getElementById("chipV"), chipB=document.getElementById("chipB");
+var vRow1=document.getElementById("vRow1"), vRow2=document.getElementById("vRow2");
+var bRow1=document.getElementById("bRow1"), bRow2=document.getElementById("bRow2");
+var elapsedEl=document.getElementById("elapsed");
+var playBtn=document.getElementById("playBtn");
+var faultBtn=document.getElementById("faultBtn");
+var resetBtn=document.getElementById("resetBtn");
+var rate=document.getElementById("rate"), rateOut=document.getElementById("rateOut");
+
+function setKey(el,key){ el.setAttribute("data-k",key); el.textContent=t(key); }
+function chip(el,key,state){ setKey(el,key); el.setAttribute("data-state",state); }
+function rowState(row,key){ setKey(row.querySelector(".state"),key); }
+function win(rowA,rowB,which){
+  (which==="a"?rowA:rowB).setAttribute("data-win","1");
+  (which==="a"?rowB:rowA).removeAttribute("data-win");
+}
+function stamp(x){ return "+"+x.toFixed(2)+"s"; }
+function reStamp(x){ return "↻"+x.toFixed(2)+"s"; }   /* clock restarts on repair */
+
+/* elapsed readout keeps a mode so it can be re-rendered on a language switch */
+var elapsedMode="standby";
+function renderElapsed(){
+  if(elapsedMode==="standby"){ elapsedEl.textContent=t("standby"); return; }
+  if(elapsedMode==="converged"){ elapsedEl.innerHTML=fmt(t("converged"),convVals()); return; }
+  elapsedEl.innerHTML=fmt(t("running"),{T:sim.t.toFixed(2)});
+}
+
+/* ============================== simulation ============================== */
+var sim={mode:"nominal",t:0,fired:{},playing:true,rate:0.25};
+var NOMINAL_DWELL=6.5, FAULT_DWELL=6.0, RESTORE_DWELL=4.0;
+
+function once(key,tm,when,fn){ if(tm>=when && !sim.fired[key]){ sim.fired[key]=true; fn(); } }
+
+function setPath(sc,owner){
+  var live=owner==="r1"?["src","hub1","r1s1"]:owner==="r2"?["src","hub2","r2s2"]:[];
+  ["src","hub1","hub2","r1s1","r2s2"].forEach(function(k){
+    if(sc.downLink===k){ sc.L[k].set("down"); return; }
+    var isCtl=(sc===B)&&(k==="hub1"||k==="hub2");
+    sc.L[k].set(live.indexOf(k)>=0?"live":(isCtl?"ctl":""));
+  });
+}
+
+function enter(mode){
+  sim.mode=mode; sim.t=0; sim.fired={};
+  V.beat={data:0,ctl:0,arp:0}; B.beat={data:0,ctl:0,arp:0};
+
+  if(mode==="nominal"){
+    elapsedMode=elapsedMode==="standby"?"standby":"converged"; renderElapsed();
+    setKey(faultBtn,"btn_fail"); faultBtn.setAttribute("data-armed","cut");
+    V.downLink=null; B.downLink=null;
+    V.N.r1.heal(); V.N.r2.heal(); B.N.r1.heal(); B.N.r2.heal();
+    V.N.r1.setSub("n_master"); V.N.r2.setSub("n_backup");
+    B.N.r1.setSub("AS 65001"); B.N.r2.setSub("AS 65002");
+    if(V.L.pair) V.L.pair.set("ctl");
+    moveVip(V,"r1"); moveVip(B,"r1");
+    setPath(V,"r1"); setPath(B,"r1");
+    win(vRow1,vRow2,"a"); win(bRow1,bRow2,"a");
+    vRow1.removeAttribute("data-down"); bRow1.removeAttribute("data-down");
+    rowState(vRow1,"st_master"); rowState(vRow2,"st_backup");
+    rowState(bRow1,"st_best");   rowState(bRow2,"st_backup");
+    chip(chipV,"chip_master_r1","ok"); chip(chipB,"chip_best_1","ok");
+    logV.clear(); logB.clear();
+    logV.push("—","lv_nom1","");
+    logV.push("—","lv_nom2","ctl");
+    logB.push("—","lb_nom1","");
+    logB.push("—","lb_nom2","ctl");
+  }
+
+  if(mode==="fault"){
+    resetLanes(); elapsedMode="running";
+    setKey(faultBtn,"btn_restore"); faultBtn.setAttribute("data-armed","restore");
+    V.downLink="hub1"; B.downLink="hub1";
+    V.N.r1.fail(); V.N.r1.setSub("n_down");
+    B.N.r1.fail(); B.N.r1.setSub("n_down");
+    if(V.L.pair) V.L.pair.set("down");
+    setPath(V,"none"); setPath(B,"none");
+    vRow1.setAttribute("data-down","1"); bRow1.setAttribute("data-down","1");
+    rowState(vRow1,"st_down"); rowState(bRow1,"st_down");
+    chip(chipV,"chip_wait","wait"); chip(chipB,"chip_recompute","wait");
+    logV.push(stamp(0),"lv_down","fault");
+    logB.push(stamp(0),"lb_down","fault");
+  }
+
+  if(mode==="restore"){
+    elapsedMode="converged"; renderElapsed();
+    setKey(faultBtn,"btn_fail"); faultBtn.setAttribute("data-armed","cut");
+    V.downLink=null; B.downLink=null;
+    V.N.r1.heal(); V.N.r1.setSub("n_backup");
+    B.N.r1.heal(); B.N.r1.setSub("AS 65001");
+    if(V.L.pair) V.L.pair.set("ctl");
+    vRow1.removeAttribute("data-down"); bRow1.removeAttribute("data-down");
+    rowState(vRow1,"st_backup"); rowState(bRow1,"st_backup");
+    setPath(V,"r2"); setPath(B,"r2");
+    logV.push(reStamp(0),"lv_rback","");
+    logB.push(reStamp(0),"lb_rback","");
+  }
+}
+
+function traffic(sc,dt,owner,drop){
+  sc.beat.data+=dt;
+  if(sc.beat.data>=0.8){
+    sc.beat.data=0;
+    var fwd=owner==="r2"?PATH.data2:PATH.data1;
+    if(drop) emit(sc,fwd,{color:"data",label:"GET /",drop:0.62,dur:.7});
+    else{
+      emit(sc,fwd,{color:"data",label:"GET /",dur:.8});
+      emit(sc,rev(fwd),{color:"data",dur:.8,delay:.62});
+    }
+  }
+}
+
+function vrrpFrame(dt){
+  var tm=sim.t;
+  if(sim.mode==="nominal"){
+    V.beat.ctl+=dt;
+    if(V.beat.ctl>=1.6){ V.beat.ctl=0; emit(V,LINK.pair,{color:"ctl",label:t("p_advert"),dur:.6}); }
+    V.beat.arp+=dt;
+    if(V.beat.arp>=4.2){
+      V.beat.arp=0;
+      emit(V,PATH.arp1,{color:"l2",label:"who-has 10.0.0.100",dur:.8});
+      emit(V,rev(PATH.arp1),{color:"l2",label:"is-at vMAC1",dur:.8,delay:.66});
+    }
+    traffic(V,dt,"r1",false);
+  }
+  else if(sim.mode==="fault"){
+    once("v-promote",tm,0.90,function(){
+      V.N.r2.setSub("n_master");
+      win(vRow1,vRow2,"b"); rowState(vRow2,"st_master");
+      chip(chipV,"chip_master_r2","ok");
+      logV.push(stamp(0.90),"lv_promote","ctl");
+      moveVip(V,"r2");
+    });
+    [0,1,2].forEach(function(i){
+      once("v-garp"+i,tm,0.94+i*0.22,function(){
+        emit(V,PATH.up2,{color:"l2",label:"GARP 10.0.0.100 is-at vMAC2",dur:.55});
+        if(i===2) logV.push(stamp(0.94),"lv_garp","l2");
+      });
+    });
+    once("v-up",tm,1.42,function(){
+      setPath(V,"r2");
+      logV.push(stamp(1.42),"lv_up","data");
+    });
+    traffic(V,dt,tm>=1.42?"r2":"r1",tm<1.42);
+    if(tm>=1.42){
+      V.beat.ctl+=dt;
+      if(V.beat.ctl>=1.6){ V.beat.ctl=0; emit(V,rev(LINK.pair),{color:"ctl",label:t("p_advert"),dur:.6}); }
+    }
+  }
+  else{
+    once("v-preempt",tm,1.0,function(){
+      V.N.r1.setSub("n_master"); V.N.r2.setSub("n_backup");
+      win(vRow1,vRow2,"a");
+      rowState(vRow1,"st_master"); rowState(vRow2,"st_backup");
+      chip(chipV,"chip_master_r1","ok");
+      moveVip(V,"r1");
+      emit(V,PATH.up1,{color:"l2",label:"GARP is-at vMAC1",dur:.55});
+      logV.push(reStamp(1.00),"lv_preempt","ctl");
+    });
+    once("v-back",tm,1.35,function(){
+      setPath(V,"r1");
+      logV.push(reStamp(1.35),"lv_home","data");
+    });
+    traffic(V,dt,tm>=1.35?"r1":"r2",tm>=1.0&&tm<1.35);
+  }
+}
+
+function bgpFrame(dt){
+  var tm=sim.t;
+  if(sim.mode==="nominal"){
+    B.beat.ctl+=dt;
+    if(B.beat.ctl>=1.6){
+      B.beat.ctl=0;
+      emit(B,PATH.up1,{color:"ctl",label:"UPDATE 10.0.0.100/32",dur:.75});
+      emit(B,PATH.up2,{color:"ctl",label:"UPDATE 10.0.0.100/32",dur:.75,delay:.5});
+    }
+    traffic(B,dt,"r1",false);
+  }
+  else if(sim.mode==="fault"){
+    once("b-session",tm,0.12,function(){ logB.push(stamp(0.12),"lb_session","ctl"); });
+    once("b-recompute",tm,0.38,function(){ logB.push(stamp(0.38),"lb_recompute","ctl"); });
+    once("b-install",tm,0.70,function(){
+      win(bRow1,bRow2,"b"); rowState(bRow2,"st_best");
+      chip(chipB,"chip_best_2","ok");
+      moveVip(B,"r2"); setPath(B,"r2");
+      logB.push(stamp(0.70),"lb_install","data");
+    });
+    traffic(B,dt,tm>=0.70?"r2":"r1",tm<0.70);
+    if(tm>=0.70){
+      B.beat.ctl+=dt;
+      if(B.beat.ctl>=1.8){ B.beat.ctl=0; emit(B,PATH.up2,{color:"ctl",label:"UPDATE",dur:.75}); }
+    }
+  }
+  else{
+    once("b-readvert",tm,0.55,function(){
+      emit(B,PATH.up1,{color:"ctl",label:"UPDATE 10.0.0.100/32",dur:.7});
+      logB.push(reStamp(0.55),"lb_readvert","ctl");
+    });
+    once("b-reconverge",tm,1.10,function(){
+      win(bRow1,bRow2,"a");
+      rowState(bRow1,"st_best"); rowState(bRow2,"st_backup");
+      chip(chipB,"chip_best_1","ok");
+      moveVip(B,"r1"); setPath(B,"r1");
+      logB.push(reStamp(1.10),"lb_reconverge","data");
+    });
+    traffic(B,dt,tm>=1.10?"r1":"r2",false);
+  }
+}
+
+/* ============================== loop ============================== */
+var last=performance.now();
+function frame(now){
+  var dt=Math.min(0.05,(now-last)/1000); last=now;
+  requestAnimationFrame(frame);
+  if(!sim.playing) return;
+  dt*=sim.rate;
+  sim.t+=dt;
+
+  vrrpFrame(dt); bgpFrame(dt);
+
+  if(sim.mode==="fault"){
+    paintLane("vrrp","barV","capV",sim.t);
+    paintLane("bgp","barB","capB",sim.t);
+    renderElapsed();
+  }
+
+  if(sim.mode==="nominal"&&sim.t>NOMINAL_DWELL) enter("fault");
+  else if(sim.mode==="fault"&&sim.t>FAULT_DWELL) enter("restore");
+  else if(sim.mode==="restore"&&sim.t>RESTORE_DWELL) enter("nominal");
+
+  stepPackets(V,dt); stepPackets(B,dt);
+  stepVip(V,dt);     stepVip(B,dt);
+}
+
+/* ============================== language ============================== */
+function applyI18N(){
+  document.documentElement.lang = LANG==="zh" ? "zh-Hant-TW" : "en";
+  document.title=t("title");
+
+  [].forEach.call(document.querySelectorAll("[data-i18n]"),function(el){
+    el.textContent=t(el.getAttribute("data-i18n"));
+  });
+  [].forEach.call(document.querySelectorAll("[data-i18n-html]"),function(el){
+    el.innerHTML=t(el.getAttribute("data-i18n-html"));
+  });
+  [].forEach.call(document.querySelectorAll("[data-k]"),function(el){
+    el.textContent=t(el.getAttribute("data-k"));
+  });
+  REG.forEach(function(r){ r.el.textContent=t(r.key); });
+
+  V.svg.setAttribute("aria-label",t(V.altKey));
+  B.svg.setAttribute("aria-label",t(B.altKey));
+
+  document.getElementById("verdict").innerHTML=fmt(t("verdict"),convVals());
+  document.getElementById("assumptions").innerHTML=t("assumptions");
+
+  logV.render(); logB.render();
+  renderLegend();
+  renderElapsed();
+
+  [].forEach.call(document.querySelectorAll(".lang-btn"),function(b){
+    var on=b.getAttribute("data-lang")===LANG;
+    b.setAttribute("aria-pressed",on?"true":"false");
+  });
+}
+function setLang(next){
+  if(!STR[next]||next===LANG) return;
+  LANG=next;
+  try{ localStorage.setItem("vip-demo-lang",next); }catch(e){}
+  applyI18N();
+}
+
+/* ============================== controls ============================== */
+playBtn.addEventListener("click",function(){
+  sim.playing=!sim.playing;
+  setKey(playBtn,sim.playing?"btn_pause":"btn_resume");
+});
+faultBtn.addEventListener("click",function(){
+  if(sim.mode==="fault") enter("restore");
+  else if(sim.mode==="nominal") enter("fault");
+  else { enter("nominal"); enter("fault"); }
+  if(!sim.playing){ sim.playing=true; setKey(playBtn,"btn_pause"); }
+});
+resetBtn.addEventListener("click",function(){
+  flush(V); flush(B);
+  elapsedMode="standby";
+  enter("nominal");
+  sim.playing=true; setKey(playBtn,"btn_pause");
+});
+rate.addEventListener("input",function(){
+  sim.rate=parseFloat(this.value);
+  rateOut.textContent=sim.rate.toFixed(2)+"×";
+});
+[].forEach.call(document.querySelectorAll(".lang-btn"),function(b){
+  b.addEventListener("click",function(){ setLang(b.getAttribute("data-lang")); });
+});
+
+enter("nominal");
+applyI18N();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
