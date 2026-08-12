@@ -42,7 +42,7 @@ a{color:inherit}
 .essay{padding:0 clamp(24px,4.6vw,70px) 140px clamp(24px,6.4vw,116px);min-width:0}
 .client{position:sticky;top:var(--hdr);height:calc(100vh - var(--hdr));border-left:1px solid var(--edge);
   background:linear-gradient(180deg,#1A1428,#120E1D);padding:18px 20px;
-  display:flex;flex-direction:column;gap:12px;min-width:0}
+  display:flex;flex-direction:column;gap:12px;min-width:0;overflow:auto}
 
 /* ---------- hero ---------- */
 .hero{padding:clamp(56px,9vh,110px) 0 66px;max-width:780px}
@@ -83,6 +83,25 @@ code{font:400 .92em var(--mono);color:var(--torch);
   background:rgba(240,165,74,.09);padding:1px 5px;border-radius:4px}
 .where{font:400 11px/1.6 var(--mono);color:var(--parch-dim);margin-top:24px;
   padding-top:12px;border-top:1px solid var(--edge)}
+
+/* ---------- client: the two versions, in the patch's own marks ---------- */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:1px;flex:0 0 auto;
+  background:var(--edge);border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.modes[hidden]{display:none}
+.mode{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:12px;
+  padding:12px 15px;text-align:left;cursor:pointer;border:0;color:var(--dim);
+  background:#170F26;transition:background .18s ease,color .18s ease}
+.mode .sig{font:600 26px/1 var(--mono)}
+.mode .nm{display:block;font:600 15px/1 var(--disp);letter-spacing:.09em}
+.mode .sub{display:block;font:400 10px/1 var(--mono);letter-spacing:.2em;margin-top:7px;opacity:.8}
+.mode[data-m=BEFORE] .sig{color:var(--bad);opacity:.6}
+.mode[data-m=AFTER] .sig{color:var(--ok);opacity:.6}
+.mode:hover{color:var(--ink);background:#201834}
+.mode:hover .sig{opacity:1}
+.mode[data-m=BEFORE][aria-selected=true]{background:var(--bad);color:#2A0E12}
+.mode[data-m=AFTER][aria-selected=true]{background:var(--ok);color:#0C1C13}
+.mode[aria-selected=true] .sig{color:inherit;opacity:.85}
+.mode[aria-selected=true] .sub{opacity:.7}
 
 /* ---------- client: viewport ---------- */
 .scr{font:600 10px/1 var(--mono);letter-spacing:.18em;color:var(--dim);
@@ -127,12 +146,6 @@ code{font:400 .92em var(--mono);color:var(--torch);
 .note::before{content:'— ';color:var(--torch)}
 .meter{margin-left:auto;font:600 10px var(--mono);color:var(--dim);letter-spacing:.04em}
 .meter em{font-style:normal;color:var(--torch)}
-.tabs{display:inline-flex;border:1px solid var(--edge);border-radius:6px;overflow:hidden}
-.tabs[hidden]{display:none}
-.tab{font:600 9px var(--mono);letter-spacing:.12em;color:var(--dim);background:none;
-  border:0;padding:4px 11px;cursor:pointer}
-.tab:hover{color:var(--ink);background:var(--edge)}
-.tab[aria-selected=true]{color:var(--void);background:var(--torch)}
 
 /* ---------- responsive ---------- */
 @media(max-width:1080px){
@@ -141,6 +154,10 @@ code{font:400 .92em var(--mono);color:var(--torch);
   .client{position:sticky;top:var(--hdr);height:auto;max-height:62vh;border-left:0;
     border-bottom:1px solid var(--edge);order:-1;padding:12px 16px;gap:9px}
   #view{min-height:150px}
+  .mode{padding:9px 12px;column-gap:9px}
+  .mode .sig{font-size:20px}
+  .mode .nm{font-size:12px}
+  .mode .sub{font-size:9px;margin-top:5px}
   .paper{max-height:136px}
   .paper .row{white-space:normal;text-indent:-1.1em;padding-left:1.1em}
   .feed{min-height:46px;max-height:82px}
@@ -165,16 +182,22 @@ code{font:400 .92em var(--mono);color:var(--torch);
 <div class="shell">
   <main class="essay" id="essay"></main>
   <section class="client" aria-label="agent client">
+    <div class="modes" id="d-tabs" role="tablist" aria-label="before / after" hidden>
+      <button class="mode" data-m="BEFORE" role="tab" aria-selected="false">
+        <span class="sig">&minus;</span>
+        <span><span class="nm">BEFORE</span><span class="sub"></span></span>
+      </button>
+      <button class="mode" data-m="AFTER" role="tab" aria-selected="false">
+        <span class="sig">+</span>
+        <span><span class="nm">AFTER</span><span class="sub"></span></span>
+      </button>
+    </div>
     <span class="scr" id="scr-view"></span>
     <svg id="view" viewBox="22 28 326 200" aria-hidden="true"></svg>
     <div class="paper" id="paper"></div>
     <div class="console">
       <span class="scr" style="margin-bottom:8px">
         <span id="scr-act"></span>
-        <span class="tabs" id="d-tabs" hidden>
-          <button class="tab" data-m="BEFORE">BEFORE</button>
-          <button class="tab" data-m="AFTER">AFTER</button>
-        </span>
         <span class="meter" id="d-meter"></span></span>
       <p class="act" id="d-act"></p>
       <div class="feed" id="d-feed"></div>
@@ -269,10 +292,10 @@ const PAPER=[
 
 /* ---------- copy ---------- */
 const UI={
-  zh:{view:'視野',act:'動作',paper:'世界狀態',
+  zh:{view:'視野',act:'動作',paper:'世界狀態',before:'以前',after:'現在',
       hint:'點任何畫底線的名字 —— 那是唯一能當 target 的字。',
       arrived:t=>`[Arrived] 走到了 ${t}。`},
-  ko:{view:'시야',act:'행동',paper:'월드 상태',
+  ko:{view:'시야',act:'행동',paper:'월드 상태',before:'예전',after:'지금',
       hint:'밑줄 친 이름을 눌러 보세요. target 이 될 수 있는 건 그것뿐입니다.',
       arrived:t=>`[Arrived] ${t} 앞에 섰습니다.`},
 };
@@ -315,16 +338,28 @@ const CH=[
  ],
  where:'data/system_prompt.txt · data/templates/*.txt · driver/action.rs (ACTION_SPECS)',
  demo:[
-  {act:'{"type":"attack","monster_id":"m2_1"}',cls:'gone',flash:['m1'],
-   note:{zh:'同一個動作，只是欄位名不同',ko:'같은 동작, 다른 필드 이름'}},
-  {act:'{"type":"attack","target":"m2_1"}',cls:'good',flash:['m1']},
-  {act:'{"type":"pickup","item":6043}',cls:'gone',flash:['torch']},
-  {act:'{"type":"pickup","target":6043}',cls:'good',flash:['torch']},
-  {act:'{"type":"open_trade","player":"Rica"}',cls:'gone',flash:['rica']},
-  {act:'{"type":"open_trade","target":"Rica"}',cls:'good',flash:['rica']},
-  {act:'{"type":"buy","item":"bread","merchant":"Rica"}',cls:'gone',flash:['rica'],
-   note:{zh:'兩樣東西：target 是人，貨物留在 item',ko:'두 대상: target 은 사람, 물건은 item 에'}},
-  {act:'{"type":"buy","item":"bread","target":"Rica"}',cls:'good',flash:['rica'],ms:2100},
+  {mode:'BEFORE',act:'{"type":"attack","monster_id":"m2_1"}',cls:'good',flash:['m1'],
+   note:{zh:'攻擊要寫 monster_id',ko:'공격은 monster_id 로 씁니다'}},
+  {ev:'[Attack] You strike m2_1.'},
+  {clear:1,act:'{"type":"pickup","monster_id":6043}',cls:'gone',flash:['torch'],
+   note:{zh:'同一個名字換到撿東西就不通了',ko:'같은 이름을 줍기에 쓰면 통하지 않습니다'}},
+  {ev:"[ActionFailed] pickup: missing field 'item'.",bad:1,ms:2600},
+  {clear:1,act:'{"type":"pickup","item":6043}',cls:'good',flash:['torch'],
+   note:{zh:'撿東西要寫 item',ko:'줍기는 item 으로'}},
+  {ev:'[Pickup] You pick up torch [6043].'},
+  {clear:1,act:'{"type":"open_trade","item":"Rica"}',cls:'gone',flash:['rica'],
+   note:{zh:'交易又是另一個名字 —— 12 個動作，12 張對照表',ko:'거래는 또 다른 이름 — 동작 12개, 대응표 12장'}},
+  {ev:"[ActionFailed] open_trade: missing field 'player'.",bad:1,ms:3000},
+
+  {mode:'AFTER',act:'{"type":"attack","target":"m2_1"}',cls:'good',flash:['m1'],
+   note:{zh:'同一個欄位，不必再記對照表',ko:'같은 필드. 대응표를 외울 일이 없습니다'}},
+  {ev:'[Attack] You strike m2_1.'},
+  {clear:1,act:'{"type":"pickup","target":6043}',cls:'good',flash:['torch']},
+  {ev:'[Pickup] You pick up torch [6043].'},
+  {clear:1,act:'{"type":"open_trade","target":"Rica"}',cls:'good',flash:['rica']},
+  {ev:'[Trade] Rica opens a trade window with you.'},
+  {clear:1,act:'{"type":"buy","item":"bread","target":"Rica"}',cls:'good',flash:['rica'],
+   note:{zh:'兩樣東西：target 是人，貨物留在 item',ko:'두 대상: target 은 사람, 물건은 item 에'},ms:3000},
  ]},
 
 {id:'resolve',mark:'resolve_move_target()',kind:'fn',
@@ -348,7 +383,17 @@ const CH=[
  ],
  where:'state.rs (MoveTarget / MoveTargetError / resolve_move_target) · driver/execute.rs',
  demo:[
-  {act:'{"type":"move","target":"goblin"}',flash:['m1','m7'],
+  {mode:'BEFORE',act:'{"type":"move","target":"m2_1"}',cls:'gone',flash:['m1'],
+   note:{zh:'以前 move 的 target 只認得附近玩家的名字',ko:'예전 move 의 target 은 근처 플레이어 이름만 알았습니다'}},
+  {ev:"[MoveFailed] No player named 'm2_1' is nearby.",bad:1,ms:2600},
+  {clear:1,act:'{"type":"move","target":6043}',cls:'gone',flash:['torch'],
+   note:{zh:'火把就在四公尺外，一樣指不到',ko:'횃불은 4m 앞인데도 가리킬 수 없습니다'}},
+  {ev:"[MoveFailed] No player named '6043' is nearby.",bad:1,ms:2600},
+  {clear:1,act:'{"type":"move","target":"Old Crypt"}',cls:'gone',flash:['crypt'],
+   note:{zh:'同一句話回三次 —— 於是只剩座標可用',ko:'같은 문장만 세 번 — 결국 좌표밖에 남지 않습니다'}},
+  {ev:"[MoveFailed] No player named 'Old Crypt' is nearby.",bad:1,ms:3200},
+
+  {mode:'AFTER',act:'{"type":"move","target":"goblin"}',flash:['m1','m7'],
    note:{zh:'種類名，不是 id —— 眼前站著兩隻',ko:'종류 이름이지 id 가 아닙니다 — 눈앞에 두 마리'}},
   {ev:"[MoveFailed] 'goblin' names a kind of monster, not one monster. Nearby goblins: m2_1 (5m), m2_7 (12m). Use the id.",bad:1,ms:3000},
   {clear:1,act:'{"type":"move","target":"m2_1"}',flash:['m1'],
@@ -386,7 +431,15 @@ const CH=[
  ],
  where:'driver/outcome.rs（新增）· state.rs (action_progress / send_background_command)',
  demo:[
+  {mode:'BEFORE',act:'{"type":"use","target":"torch"}',meter:[7,21],
+   note:{zh:'背包裡沒有 torch',ko:'가방에 torch 가 없습니다'}},
+  {meter:[7,21],note:{zh:'沒推事件，也沒送指令 —— 而且沒有人說一句話',ko:'이벤트도 커맨드도 없고, 아무 말도 없습니다'},ms:2600},
   {act:'{"type":"use","target":"torch"}',meter:[7,21],
+   note:{zh:'模型看不到回音，就把同一個動作再送一次',ko:'응답이 보이지 않으니 같은 행동을 다시 보냅니다'},ms:2400},
+  {act:'{"type":"use","target":"torch"}',meter:[7,21],
+   note:{zh:'一路送到回合用完，transcript 上一片空白',ko:'턴이 끝날 때까지 이대로. 트랜스크립트는 비어 있습니다'},ms:3200},
+
+  {mode:'AFTER',act:'{"type":"use","target":"torch"}',meter:[7,21],
    note:{zh:'動作之前先打一個記號',ko:'행동 전에 표시를 하나'}},
   {meter:[7,21],note:{zh:'背包裡沒有 torch：沒推事件，也沒送指令',ko:'가방에 torch 가 없다: 이벤트도, 커맨드도 없음'}},
   {meter:[7,21],note:{zh:'其間心跳送出了 —— 走背景通道，計數刻意不動',ko:'그사이 하트비트 발신 — 배경 통로라 계수는 일부러 그대로'}},
@@ -417,7 +470,19 @@ Reissue what still applies.`,'now'),
  ],
  where:'driver/execute.rs (pending / lost_position / skipped)',
   demo:[
-   {act:'{"actions":[\n  {"type":"move","x":40,"z":-12},\n  {"type":"attack","target":"m2_1"},\n  {"type":"say","message":"따라와"}\n]}',
+   {mode:'BEFORE',act:'{"actions":[\n  {"type":"move","x":40,"z":-12},\n  {"type":"attack","target":"m2_1"},\n  {"type":"say","message":"따라와"}\n]}',
+    note:{zh:'一回合三個動作，後面兩個都假設「我已經到了」',ko:'한 턴에 셋. 뒤의 둘은 “도착했다”를 전제로 합니다'},ms:2800},
+   {move:{me:[4,3]},flash:['m1'],
+    note:{zh:'目標在牆的另一邊',ko:'목표는 벽 너머'},ms:1500},
+   {bump:'me',ev:'[MoveFailed] No route to (40.0, -12.0) — a wall or a shut door stands in the way.',bad:1,
+    note:{zh:'走不過去，移動失敗',ko:'길이 막혀 이동 실패'},ms:2600},
+   {act:'{"type":"attack","target":"m2_1"}',cls:'good',
+    note:{zh:'後面照跑 —— 在離目標九公尺的地方揮刀',ko:'뒤의 행동은 그대로 실행 — 목표에서 9m 떨어진 자리에서 칼을 휘두릅니다'},ms:2800},
+   {ev:'[Attack] You swing. Nothing is in reach.',bad:1,ms:2400},
+   {act:'{"type":"say","message":"따라와"}',cls:'good',say:'따라와',ms:2000},
+   {note:{zh:'回合結束，沒有一句話說明「你其實沒到」',ko:'턴 종료. “도착하지 못했다”고 말해 주는 문장은 없습니다'},ms:3400},
+
+   {mode:'AFTER',clear:1,act:'{"actions":[\n  {"type":"move","x":40,"z":-12},\n  {"type":"attack","target":"m2_1"},\n  {"type":"say","message":"따라와"}\n]}',
     note:{zh:'一回合三個動作，後面兩個都假設「我已經到了」',ko:'한 턴에 셋. 뒤의 둘은 “도착했다”를 전제로 합니다'},ms:2800},
    {move:{me:[4,3]},flash:['m1'],
     note:{zh:'先動移動 —— 目標在牆的另一邊',ko:'먼저 이동 — 목표는 벽 너머'},ms:1500},
@@ -438,7 +503,7 @@ Reissue what still applies.`,'now'),
  blocks:[
   P('<code>direction_to_offset()</code> 以前碰到不認得的字就<b>預設往北</b>，只留一行 warn。agent 被送去反方向，而 transcript 上什麼都看不出來 —— 這種錯最難查，因為它看起來像是模型自己決定要往北走。',
     '<code>direction_to_offset()</code> 은 모르는 단어를 만나면 <b>북쪽을 기본값으로</b> 삼고 warn 한 줄만 남겼습니다. 에이전트는 엉뚱한 방향으로 걸어가는데 트랜스크립트에는 아무 흔적도 없습니다. 모델이 스스로 북쪽을 골랐던 것처럼 보이기 때문에 가장 찾기 어려운 종류의 버그입니다.'),
-  L('이전 → 이후','BEFORE → AFTER'),
+  L('以前 → 現在','예전 → 지금'),
   C(`- fn direction_to_offset(dir:&str) -> (f32,f32)
 -     _ => { warn!("defaulting to north"); (0.0,-1.0) }
 + fn direction_to_offset(dir:&str) -> Option<(f32,f32)>
@@ -479,7 +544,17 @@ Reissue what still applies.`,'now'),
  ],
  where:'state.rs (all_dungeons / dungeon_named / normalize_place) · driver/execute.rs',
  demo:[
-  {flash:['crypt','warrens'],
+  {mode:'BEFORE',cast:['me','crypt','warrens','m1'],paper:['me','crypt','m1'],flash:['crypt'],
+   note:{zh:'世界狀態只印最近的那一座',ko:'월드 상태는 가장 가까운 하나만 찍었습니다'},ms:2800},
+  {act:'{"type":"move","target":"Orc Warrens"}',cls:'gone',
+   note:{zh:'那座就站在 118 公尺外，只是名字沒印出來',ko:'그 던전은 118m 밖에 서 있지만 이름이 찍히지 않았습니다'},ms:2600},
+  {ev:"[MoveFailed] Nothing here is called 'Orc Warrens'.",bad:1,ms:3000},
+  {clear:1,act:'{"type":"move","depth":1}',flash:['crypt'],
+   note:{zh:'能去的只有最近那一座 —— 選不了',ko:'갈 수 있는 곳은 가장 가까운 하나뿐, 고를 수 없습니다'}},
+  {move:{me:[5,1]}},
+  {ev:'[Arrived] You are on floor 1.',ms:3200},
+
+  {mode:'AFTER',flash:['crypt','warrens'],
    note:{zh:'兩個入口都印出來了 —— 遠的那個也算',ko:'입구 둘 다 찍힙니다 — 먼 쪽도 포함'},ms:2400},
   {act:'{"type":"move","target":"Old Crypt"}',flash:['crypt'],
    note:{zh:'沒有 depth = 走到入口就停在外面',ko:'depth 없음 = 입구까지 가서 밖에 섭니다'}},
@@ -537,6 +612,8 @@ function renderChrome(){
   document.documentElement.lang=lang==='zh'?'zh-TW':'ko';
   $('#scr-view').textContent=UI[lang].view;
   $('#scr-act').textContent=UI[lang].act;
+  $('.mode[data-m=BEFORE] .sub').textContent=UI[lang].before;
+  $('.mode[data-m=AFTER] .sub').textContent=UI[lang].after;
   [...$('#langs').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===lang));
 }
 
@@ -620,11 +697,14 @@ function clearConsole(){
 
 async function run(ch){
   const my=++gen; current=ch;
-  renderPaper(ch.cast); dress(ch.cast); clearConsole();
   const segs=segmentsOf(ch), hasMode=segs.some(s=>s.mode);
   $('#d-tabs').hidden=!hasMode;
   if(hasMode)setTabs(MODE);
-  const frames=(hasMode?segs.find(s=>s.mode===MODE)||segs[0]:segs[0]).frames;
+  const seg=(hasMode?segs.find(s=>s.mode===MODE)||segs[0]:segs[0]);
+  const frames=seg.frames, cast=seg.cast||ch.cast;
+  // a segment may print less than it shows: the old world state left the far
+  // dungeon standing there, just unnamed — and what is not named cannot be a target
+  renderPaper(seg.paper||cast); dress(cast); clearConsole();
   for(const e of CAST)if(e.id!=='me')place(e.id,e.x,e.y,0,RM?0:1);
   place('me',ENT.me.x,ENT.me.y,0,RM?0:1);
   if(RM){frames.forEach(frame);return}
@@ -639,16 +719,25 @@ async function run(ch){
 function segmentsOf(ch){
   const segs=[]; let cur=null;
   for(const f of ch.demo){
-    if(f.mode){cur={mode:f.mode,frames:[]};segs.push(cur)}
+    if(f.mode){cur={mode:f.mode,frames:[],cast:f.cast,paper:f.paper};segs.push(cur)}
     if(!cur)cur={mode:null,frames:[]},segs.push(cur);
     cur.frames.push(f);
   }
   return segs;
 }
-$('#d-tabs').addEventListener('click',e=>{
-  const b=e.target.closest('.tab'); if(!b||b.dataset.m===MODE)return;
-  MODE=b.dataset.m; setTabs(MODE);
+function pickMode(m){
+  if(m===MODE)return;
+  MODE=m; setTabs(MODE);
   if(current)run(current);
+}
+$('#d-tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.mode'); if(b)pickMode(b.dataset.m);
+});
+$('#d-tabs').addEventListener('keydown',e=>{
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  e.preventDefault();
+  const next=$(`.mode[data-m=${MODE==='BEFORE'?'AFTER':'BEFORE'}]`);
+  next.focus(); pickMode(next.dataset.m);
 });
 
 /* point at anything the printout names */
