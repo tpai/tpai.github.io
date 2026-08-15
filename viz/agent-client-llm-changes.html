@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>agent-client LLM changes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Public+Sans:wght@400;600&family=Martian+Mono:wght@300;500;700&display=swap" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+<style>
+  :root {
+    --ground: #0d1618;
+    --plate: #142022;
+    --plate-2: #1b2a2c;
+    --seam: #2a3d3f;
+    --seam-lit: #3b5254;
+    --chalk: #eaf2ee;
+    --dim: #86a09e;
+    --signal: #56c8de;
+    --copper: #e8894e;
+    --moss: #86d9a6;
+    --alarm: #ff6182;
+    --tint: var(--signal);
+
+    --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --ui: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          "Noto Sans KR", "Apple SD Gothic Neo",
+          "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --mono: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --chamfer: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: 16px clamp(14px, 2vw, 26px) clamp(14px, 2vh, 22px);
+    background: var(--ground);
+    color: var(--chalk);
+    font: 15px/1.5 var(--ui);
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      linear-gradient(151deg, transparent 44%, rgba(86, 200, 222, 0.05) 44.3%, transparent 63%),
+      linear-gradient(-27deg, transparent 66%, rgba(232, 137, 78, 0.045) 66.3%, transparent 88%);
+  }
+  body > * { position: relative; z-index: 1; }
+
+  .eyebrow {
+    display: block;
+    font: 500 10px/1 var(--mono); letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--dim);
+  }
+
+  /* ---------- top bar ---------- */
+  .bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px clamp(16px, 3vw, 34px);
+    padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--seam);
+  }
+  .ident { min-width: 0; }
+  h1 {
+    margin: 5px 0 0;
+    font: 800 clamp(17px, 1.7vw, 23px)/1.1 var(--display); letter-spacing: -0.025em;
+  }
+  .tabs { display: flex; gap: 8px; margin-left: auto; }
+  .tab {
+    appearance: none; font: inherit; font-size: 14px; cursor: pointer;
+    padding: 8px 15px; color: var(--dim);
+    background: var(--plate); border: 1px solid var(--seam); border-left: 3px solid var(--seam);
+    clip-path: var(--chamfer);
+  }
+  .tab:hover { background: var(--plate-2); }
+  .tab[aria-selected="true"] { background: var(--plate-2); color: var(--chalk); border-left-color: var(--tint); }
+  #tab-route { --tint: var(--signal); }
+  #tab-cap { --tint: var(--copper); }
+
+  /* ---------- panels ---------- */
+  main { flex: 1; min-height: 0; }
+  .panel {
+    height: 100%; min-height: 0;
+    display: grid; grid-template-columns: minmax(320px, 25vw) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(18px, 2.4vw, 34px); row-gap: 12px;
+  }
+  #panel-route { --tint: var(--signal); }
+  #panel-cap { --tint: var(--copper); }
+  .head { grid-column: 1; grid-row: 1; min-width: 0; }
+  .rail { grid-column: 1; grid-row: 2; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+  .stage { grid-column: 2; grid-row: 1 / span 2; min-width: 0; min-height: 0; }
+
+  h2 { margin: 0 0 5px; font: 600 clamp(16px, 1.5vw, 20px)/1.2 var(--display); letter-spacing: -0.02em; }
+  .takeaway { margin: 0; color: var(--dim); font-size: 14px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin-top: 10px; }
+  .group { display: flex; flex-direction: column; gap: 7px; }
+  .group > span { font: 500 9.5px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+  .seg { display: flex; border: 1px solid var(--seam); clip-path: var(--chamfer); background: var(--plate); }
+  .seg button {
+    appearance: none; border: 0; background: transparent; color: var(--dim);
+    font: inherit; font-size: 13.5px; padding: 7px 13px; cursor: pointer;
+    transition: color 140ms ease, background 140ms ease;
+  }
+  .seg button + button { box-shadow: inset 1px 0 0 var(--seam); }
+  .seg button:hover:not([disabled]):not([aria-pressed="true"]) { color: var(--chalk); }
+  .seg button[aria-pressed="true"] { background: var(--tint); color: var(--ground); font-weight: 600; }
+  .seg button[disabled] { opacity: 0.32; cursor: not-allowed; }
+  .btn {
+    appearance: none; border: 1px solid var(--seam); background: var(--plate); color: var(--chalk);
+    font: inherit; font-size: 13.5px; padding: 7px 14px; cursor: pointer; clip-path: var(--chamfer);
+  }
+  .btn:hover { background: var(--plate-2); }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--seam); }
+  input[type="range"]::-moz-range-track { height: 4px; background: var(--seam); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; background: var(--tint); border: 0;
+    clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  }
+  input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 0; background: var(--tint); }
+  :focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--chalk); }
+  .btn:focus-visible, .tab:focus-visible { box-shadow: inset 0 0 0 2px var(--chalk); }
+  input[type="range"]:focus-visible { outline: 2px solid var(--chalk); outline-offset: 3px; box-shadow: none; }
+
+  /* the seam the code is about: what you set | what comes back */
+  .out { border-top: 1px dashed var(--seam-lit); padding-top: 14px; }
+
+  .stamp {
+    display: inline-block; margin-top: 10px; transform: rotate(-2.2deg); color: var(--dim);
+    border: 2px solid currentColor; padding: 10px 15px 9px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    font: 700 13px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .stamp.ok { color: var(--moss); }
+  .stamp.stop { color: var(--alarm); }
+  .stamp.warn { color: var(--copper); }
+  @keyframes restamp {
+    0% { transform: rotate(-8deg) scale(1.18); opacity: 0; }
+    55% { transform: rotate(-0.6deg) scale(0.985); opacity: 1; }
+    100% { transform: rotate(-2.2deg) scale(1); opacity: 1; }
+  }
+  .stamp.hit { animation: restamp 380ms cubic-bezier(0.2, 0.9, 0.3, 1); }
+  .shows { margin: 12px 0 0; font-size: 14.5px; }
+  .shows b { font-weight: 600; }
+  .why { margin: 6px 0 0; color: var(--dim); font-size: 13px; }
+
+  .stage { background: var(--plate); border: 1px solid var(--seam); clip-path: var(--chamfer); }
+  svg { display: block; width: 100%; height: 100%; }
+  #scene-route text, #scene-cap text { font-family: var(--ui); }
+  .micro { font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+  .mono { font-family: var(--mono); }
+
+  .code {
+    margin-top: auto; border: 1px solid var(--seam); background: #0a1214; clip-path: var(--chamfer);
+    overflow: hidden;
+  }
+  .code header {
+    padding: 8px 13px; border-bottom: 1px solid var(--seam); color: var(--dim);
+    font: 300 10px/1.3 var(--mono); word-break: break-all;
+  }
+  .snippet {
+    margin: 0; padding: 11px 13px; overflow-x: auto; color: #9bb3b1;
+    font: 300 11px/1.7 var(--mono); white-space: pre;
+  }
+  .snippet .add { color: var(--moss); }
+  .snippet .cut { color: var(--alarm); }
+  .snippet .none { color: var(--dim); font-family: var(--ui); font-style: italic; }
+
+  /* the mono tracking is set for Latin; CJK falls back to a proportional face */
+  html:lang(ko) .eyebrow, html:lang(zh-Hant) .eyebrow,
+  html:lang(ko) .group > span, html:lang(zh-Hant) .group > span,
+  html:lang(ko) .stamp, html:lang(zh-Hant) .stamp,
+  html:lang(ko) .micro, html:lang(zh-Hant) .micro { letter-spacing: 0.05em; }
+
+  .lane { transition: opacity 220ms ease; }
+  .lane.off { opacity: 0.2; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 900px) {
+    body { padding-top: 12px; font-size: 14px; }
+    .bar { padding-bottom: 9px; margin-bottom: 10px; gap: 6px 12px; }
+    .ident { flex: 1 1 100%; }
+    .ident .eyebrow { display: none; }
+    .tabs { margin-left: 0; }
+    .bar .seg button, .tab { padding: 6px 10px; font-size: 12.5px; }
+    .panel { display: flex; flex-direction: column; gap: 10px; }
+    .head, .rail { flex: 0 0 auto; }
+    .rail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 14px; }
+    .out { border-top: 0; border-left: 1px dashed var(--seam-lit); padding: 0 0 0 14px; }
+    .stage { flex: 1 1 auto; min-height: 150px; }
+    .code { display: none; }
+    .stamp { margin-top: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lane { transition: none; }
+    .stamp.hit { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="ident">
+      <span class="eyebrow">OpenMMO · agent-client</span>
+      <h1 id="t-h1"></h1>
+    </div>
+    <div class="tabs" role="tablist" id="tablist">
+      <button type="button" class="tab" role="tab" id="tab-route" aria-controls="panel-route" aria-selected="true"></button>
+      <button type="button" class="tab" role="tab" id="tab-cap" aria-controls="panel-cap" aria-selected="false" tabindex="-1"></button>
+    </div>
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true" lang="en">English</button>
+      <button type="button" data-lang="zh-Hant" aria-pressed="false" lang="zh-Hant">繁體中文</button>
+      <button type="button" data-lang="ko" aria-pressed="false" lang="ko">한국어</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- ============ Panel 1: translation routing ============ -->
+    <section class="panel" id="panel-route" role="tabpanel" aria-labelledby="tab-route">
+      <div class="head">
+        <h2 id="r-h2"></h2>
+        <p class="takeaway" id="r-takeaway"></p>
+      </div>
+
+      <div class="rail">
+        <div class="set">
+          <span class="eyebrow" id="r-in-label"></span>
+          <div class="controls">
+            <div class="group">
+              <span id="r-lbl-ver"></span>
+              <div class="seg" role="group" aria-labelledby="r-lbl-ver">
+                <button type="button" data-ver="before" aria-pressed="false"></button>
+                <button type="button" data-ver="after" aria-pressed="true"></button>
+              </div>
+            </div>
+            <div class="group">
+              <span id="r-lbl-env"></span>
+              <div class="seg" role="group" aria-labelledby="r-lbl-env">
+                <button type="button" data-env="browser" aria-pressed="false"></button>
+                <button type="button" data-env="host" aria-pressed="true">agent-client</button>
+              </div>
+            </div>
+            <div class="group">
+              <span id="r-lbl-host"></span>
+              <div class="seg" role="group" aria-labelledby="r-lbl-host">
+                <button type="button" data-host="answers" aria-pressed="true"></button>
+                <button type="button" data-host="silent" aria-pressed="false"></button>
+              </div>
+            </div>
+            <button type="button" class="btn" id="r-replay"></button>
+          </div>
+        </div>
+
+        <div class="out" aria-live="polite">
+          <span class="eyebrow" id="r-out-label"></span>
+          <span class="stamp" id="r-tag">—</span>
+          <p class="shows" id="r-shows"></p>
+          <p class="why" id="r-why"></p>
+        </div>
+
+        <div class="code">
+          <header>client/src/lib/translation/chatTranslator.ts</header>
+          <pre class="snippet" id="r-snippet"></pre>
+        </div>
+      </div>
+
+      <div class="stage">
+        <svg id="scene-route" viewBox="0 0 900 680" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="route-title">
+          <title id="route-title"></title>
+          <line id="r-bound" stroke="#3b5254" stroke-width="1.5" stroke-dasharray="5 7" />
+          <g fill="none" stroke-linecap="round">
+            <path id="s1" /><path id="s2a" /><path id="s2b" />
+            <path id="s2c" /><path id="s3a" /><path id="s3b" />
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ============ Panel 2: history cap ============ -->
+    <section class="panel" id="panel-cap" role="tabpanel" aria-labelledby="tab-cap" hidden>
+      <div class="head">
+        <h2 id="c-h2"></h2>
+        <p class="takeaway" id="c-takeaway"></p>
+      </div>
+
+      <div class="rail">
+        <div class="set">
+          <span class="eyebrow" id="c-in-label"></span>
+          <div class="controls">
+            <div class="group">
+              <span id="c-lbl-ver"></span>
+              <div class="seg" role="group" aria-labelledby="c-lbl-ver">
+                <button type="button" data-cver="before" aria-pressed="false"></button>
+                <button type="button" data-cver="after" aria-pressed="true"></button>
+              </div>
+            </div>
+            <button type="button" class="btn" id="c-reset"></button>
+            <div class="group" style="flex: 1 1 200px;">
+              <span id="c-lbl-slider"></span>
+              <input type="range" id="c-slider" min="0" max="60" value="41" aria-describedby="c-why" />
+            </div>
+          </div>
+        </div>
+
+        <div class="out" aria-live="polite">
+          <span class="eyebrow" id="c-out-label"></span>
+          <span class="stamp" id="c-tag">—</span>
+          <p class="shows" id="c-cost"></p>
+          <p class="why" id="c-why"></p>
+        </div>
+
+        <div class="code">
+          <header>agent-client/src/openai.rs</header>
+          <pre class="snippet" id="c-snippet"></pre>
+        </div>
+      </div>
+
+      <div class="stage">
+        <svg id="scene-cap" viewBox="0 0 900 560" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="cap-title">
+          <title id="cap-title"></title>
+        </svg>
+      </div>
+    </section>
+  </main>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  var C = {
+    inert: '#2a3d3f', signal: '#56c8de', copper: '#e8894e', ok: '#86d9a6', stop: '#ff6182',
+    chalk: '#eaf2ee', dim: '#86a09e', faint: '#6e8887', plate: '#172527',
+    hostFill: '#2a1d14', devFill: '#12262b', hostInk: '#f6d2b4', hostSub: '#b58a64',
+    devInk: '#bfe6ef', devSub: '#78a9b4', outEdge: '#3a5052', track: '#182628', marker: '#b9cfcb'
+  };
+
+  /* ===================== strings ===================== */
+  var I18N = {
+    en: {
+      h1: 'Two changes to the agent-client’s LLM calls',
+      tabRoute: 'Chat translation', tabCap: 'History cap',
+      paneIn: 'What you set', paneOut: 'What comes back',
+      code: 'Code', before: 'Before', after: 'After', replay: 'Replay',
+      src: '안녕하세요', dst: 'Hello',
+
+      rH2: 'Where chat translation happens',
+      rTakeBefore: 'Before: chat translation only ever used the browser’s on-device Translator API.',
+      rTakeAfter: 'After: it asks agent-client’s LLM first, and falls back to the on-device translator.',
+      runsIn: 'Runs in', browser: 'Browser',
+      hostLlm: 'Host LLM', answers: 'Answers', silent: 'Silent',
+      rTitle: 'A chat message routed to a translator',
+      boundary: 'postMessage boundary', chatMessage: 'chat message', route: 'route',
+      holdsKey: 'holds API key', llmEndpoint: 'LLM endpoint',
+      translatorApi: 'Translator API', onDevice: 'on-device', shownInChat: 'shown in chat',
+      noApi: 'no Translator API', timedOut: 'no reply — 15s timeout',
+      translated: 'translated', unchanged: 'unchanged',
+      shows: function (x) { return 'Chat shows ' + x; },
+      whyBrowserBefore: 'The Translator API is present in the browser.',
+      whyHostBefore: 'No Translator API inside agent-client, so the message comes back unchanged.',
+      whyBrowserAfter: 'window.parent === window, so translateViaHost() resolves null at once.',
+      whySilent: 'No reply in 15s, so it falls back — and the browser path is missing here.',
+      whyHost: 'agent-client owns the endpoint and its key, and answers over postMessage.',
+      noHostAttempt: '// no host attempt',
+
+      cH2: 'What each call pays for in tokens',
+      cTakeBefore: 'Before: every call re-sent a hard-coded 41 messages, whatever that cost in tokens.',
+      cTakeAfter: 'After: the config sets how many tokens each call pays for, floored at 3 messages.',
+      configAsks: 'Config asks for', resetTo: 'Reset to 41',
+      cTitle: 'A 60 message conversation trimmed to a cap, and the tokens that trim saves',
+      caption: 'one conversation, 60 messages — tile height is its token count',
+      systemKept: 'system prompt — always kept', recentTurns: 'most recent turns',
+      dropped: function (n) { return n + ' dropped'; },
+      tokensPerCall: 'tokens per call',
+      oldFixedCost: 'the old fixed cost (41 messages)',
+      meter: function (a, b) { return a + ' / ' + b + ' tokens'; },
+      ignored: 'ignored', clamped: 'clamped to 3', honored: 'honored',
+      cost: function (sent, tok, saved, pct) {
+        return 'Sends <b>' + sent + ' messages</b>, about <b>' + tok + ' tokens</b> per call — ' +
+               '<b class="ok">' + saved + ' tokens (' + pct + '%) saved</b> every call.';
+      },
+      costFull: function (sent, tok) {
+        return 'Sends <b>' + sent + ' messages</b>, about <b>' + tok + ' tokens</b> per call — ' +
+               '<b class="stop">nothing trimmed</b>, the whole history every call.';
+      },
+      whyIgnored: function (a) {
+        return 'Asked for ' + a + ', but MAX_MESSAGES is a constant — the token bill was not tunable.';
+      },
+      whyClamped: function (a) {
+        return 'Asked for ' + a + '. Below 3, turn.len() - (cap - 1) underflows a usize and panics mid-turn.';
+      },
+      whyHonored: function (n) {
+        return 'System prompt plus the newest ' + n + ' messages, re-sent every turn.';
+      },
+      hardCoded: '// hard-coded', fromConfig: '// from config',
+      sliderValue: function (a, s) { return a + ' requested, ' + s + ' sent'; }
+    },
+
+    'zh-Hant': {
+      h1: 'agent-client 呼叫 LLM 的兩項變更',
+      tabRoute: '聊天翻譯', tabCap: '歷史上限',
+      paneIn: '你的設定', paneOut: '得到的結果',
+      code: '程式碼', before: '變更前', after: '變更後', replay: '重播',
+      src: '안녕하세요', dst: '你好',
+
+      rH2: '聊天翻譯在哪裡進行',
+      rTakeBefore: '變更前：聊天翻譯只用瀏覽器內建的 Translator API。',
+      rTakeAfter: '變更後：先問 agent-client 的 LLM，失敗才退回裝置端翻譯器。',
+      runsIn: '執行於', browser: '瀏覽器',
+      hostLlm: '主機 LLM', answers: '有回應', silent: '沒回應',
+      rTitle: '一則聊天訊息被導向翻譯器',
+      boundary: 'postMessage 邊界', chatMessage: '聊天訊息', route: '分流',
+      holdsKey: '持有 API 金鑰', llmEndpoint: 'LLM 端點',
+      translatorApi: 'Translator API', onDevice: '裝置端', shownInChat: '顯示在聊天',
+      noApi: '沒有 Translator API', timedOut: '沒有回應 — 15 秒逾時',
+      translated: '已翻譯', unchanged: '未翻譯',
+      shows: function (x) { return '聊天顯示 ' + x; },
+      whyBrowserBefore: '瀏覽器裡有 Translator API。',
+      whyHostBefore: 'agent-client 內沒有 Translator API，訊息原樣返回。',
+      whyBrowserAfter: 'window.parent === window，translateViaHost() 立刻回傳 null。',
+      whySilent: '15 秒內沒有回應而退回，但這裡沒有瀏覽器那條路。',
+      whyHost: 'agent-client 握有端點與金鑰，透過 postMessage 回覆。',
+      noHostAttempt: '// 不呼叫主機',
+
+      cH2: '每次呼叫要付多少 token',
+      cTakeBefore: '變更前：不論花多少 token，每次呼叫都重送寫死的 41 則訊息。',
+      cTakeAfter: '變更後：設定決定每次呼叫付出的 token，下限為 3 則訊息。',
+      configAsks: '設定要求', resetTo: '重設為 41',
+      cTitle: '一段 60 則訊息的對話依上限裁切，以及省下的 token',
+      caption: '一段對話，60 則訊息 — 方塊高度即 token 數',
+      systemKept: '系統提示 — 一律保留', recentTurns: '最近的對話',
+      dropped: function (n) { return '捨棄 ' + n + ' 則'; },
+      tokensPerCall: '每次呼叫的 token',
+      oldFixedCost: '舊的固定成本（41 則訊息）',
+      meter: function (a, b) { return a + ' / ' + b + ' token'; },
+      ignored: '被忽略', clamped: '夾到 3', honored: '已生效',
+      cost: function (sent, tok, saved, pct) {
+        return '送出 <b>' + sent + ' 則訊息</b>，每次呼叫約 <b>' + tok + ' token</b> — ' +
+               '每次省下 <b class="ok">' + saved + ' token（' + pct + '%）</b>。';
+      },
+      costFull: function (sent, tok) {
+        return '送出 <b>' + sent + ' 則訊息</b>，每次呼叫約 <b>' + tok + ' token</b> — ' +
+               '<b class="stop">完全沒裁切</b>，整段歷史都送。';
+      },
+      whyIgnored: function (a) {
+        return '要求 ' + a + '，但 MAX_MESSAGES 是常數，token 成本無法調整。';
+      },
+      whyClamped: function (a) {
+        return '要求 ' + a + '。低於 3 時 turn.len() - (cap - 1) 會讓 usize 下溢，呼叫中途 panic。';
+      },
+      whyHonored: function (n) {
+        return '系統提示加上最新的 ' + n + ' 則訊息，每一輪都重送。';
+      },
+      hardCoded: '// 寫死', fromConfig: '// 來自設定',
+      sliderValue: function (a, s) { return '要求 ' + a + '，送出 ' + s; }
+    },
+
+    ko: {
+      h1: 'agent-client의 LLM 호출에 생긴 두 가지 변화',
+      tabRoute: '채팅 번역', tabCap: '히스토리 상한',
+      paneIn: '설정하는 값', paneOut: '돌아오는 결과',
+      code: '코드', before: '변경 전', after: '변경 후', replay: '다시 재생',
+      src: 'Hello', dst: '안녕하세요',
+
+      rH2: '채팅 번역이 어디서 일어나는가',
+      rTakeBefore: '변경 전: 채팅 번역은 브라우저의 온디바이스 Translator API만 사용했다.',
+      rTakeAfter: '변경 후: agent-client의 LLM에 먼저 요청하고, 안 되면 온디바이스 번역기로 넘어간다.',
+      runsIn: '실행 위치', browser: '브라우저',
+      hostLlm: '호스트 LLM', answers: '응답함', silent: '무응답',
+      rTitle: '번역기로 전달되는 채팅 메시지',
+      boundary: 'postMessage 경계', chatMessage: '채팅 메시지', route: '분기',
+      holdsKey: 'API 키 보유', llmEndpoint: 'LLM 엔드포인트',
+      translatorApi: 'Translator API', onDevice: '온디바이스', shownInChat: '채팅에 표시',
+      noApi: 'Translator API 없음', timedOut: '응답 없음 — 15초 타임아웃',
+      translated: '번역됨', unchanged: '그대로',
+      shows: function (x) { return '채팅에 ' + x + ' 표시'; },
+      whyBrowserBefore: '브라우저에는 Translator API가 있다.',
+      whyHostBefore: 'agent-client 안에는 Translator API가 없어서 메시지가 그대로 돌아온다.',
+      whyBrowserAfter: 'window.parent === window 이므로 translateViaHost()가 즉시 null을 반환한다.',
+      whySilent: '15초 안에 응답이 없어 폴백하지만, 여기엔 브라우저 경로가 없다.',
+      whyHost: 'agent-client가 엔드포인트와 키를 갖고 있고 postMessage로 응답한다.',
+      noHostAttempt: '// 호스트 호출 없음',
+
+      cH2: '호출 한 번이 소모하는 토큰',
+      cTakeBefore: '변경 전: 토큰이 얼마가 들든 매 호출마다 고정된 41개 메시지를 다시 보냈다.',
+      cTakeAfter: '변경 후: 설정이 호출당 토큰 양을 정하고, 최소 3개 메시지로 제한된다.',
+      configAsks: '설정 요청값', resetTo: '41로 되돌리기',
+      cTitle: '상한에 맞춰 잘라낸 60개 메시지 대화와 그로 인해 아낀 토큰',
+      caption: '대화 1건, 메시지 60개 — 타일 높이가 토큰 수',
+      systemKept: '시스템 프롬프트 — 항상 유지', recentTurns: '최근 대화',
+      dropped: function (n) { return n + '개 버림'; },
+      tokensPerCall: '호출당 토큰',
+      oldFixedCost: '기존 고정 비용 (41개 메시지)',
+      meter: function (a, b) { return a + ' / ' + b + ' 토큰'; },
+      ignored: '무시됨', clamped: '3으로 고정', honored: '적용됨',
+      cost: function (sent, tok, saved, pct) {
+        return '메시지 <b>' + sent + '개</b>, 호출당 약 <b>' + tok + ' 토큰</b> — ' +
+               '매 호출 <b class="ok">' + saved + ' 토큰(' + pct + '%) 절약</b>.';
+      },
+      costFull: function (sent, tok) {
+        return '메시지 <b>' + sent + '개</b>, 호출당 약 <b>' + tok + ' 토큰</b> — ' +
+               '<b class="stop">잘라내는 것 없이</b> 전체 히스토리.';
+      },
+      whyIgnored: function (a) {
+        return a + '을 요청했지만 MAX_MESSAGES가 상수라 토큰 비용을 조절할 수 없었다.';
+      },
+      whyClamped: function (a) {
+        return a + '을 요청. 3 미만이면 turn.len() - (cap - 1)이 usize 언더플로로 호출 도중 패닉한다.';
+      },
+      whyHonored: function (n) {
+        return '시스템 프롬프트와 최신 메시지 ' + n + '개를 매 턴 다시 보낸다.';
+      },
+      hardCoded: '// 하드코딩', fromConfig: '// 설정에서',
+      sliderValue: function (a, s) { return a + ' 요청, ' + s + ' 전송'; }
+    }
+  };
+
+  var lang = (function () {
+    var saved;
+    try { saved = localStorage.getItem('openmmo-anim-lang'); } catch (e) { /* file:// */ }
+    if (saved && I18N[saved]) return saved;
+    var n = (navigator.language || 'en').toLowerCase();
+    if (n.indexOf('ko') === 0) return 'ko';
+    if (n.indexOf('zh') === 0 && /hant|tw|hk|mo/.test(n)) return 'zh-Hant';
+    return 'en';
+  })();
+  function T() { return I18N[lang]; }
+
+  /* ===================== svg helpers ===================== */
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    parent.appendChild(n);
+    return n;
+  }
+  function poly(pts, attrs, parent) {
+    attrs.points = pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
+    return el('polygon', attrs, parent);
+  }
+  function txt(parent, x, y, fill, size, cls) {
+    var a = { x: x, y: y, 'text-anchor': 'middle', 'font-size': size || 13, fill: fill || C.dim };
+    if (cls) a.class = cls === true ? 'micro' : cls;
+    var t = el('text', a, parent);
+    t.appendChild(document.createTextNode(''));
+    return t;
+  }
+  function setText(node, str) { node.firstChild.nodeValue = str; }
+  // low-poly box: clipped corners plus one lighter facet
+  function facetBox(parent, cx, cy, w, h, stroke, fill) {
+    var g = el('g', {}, parent);
+    var x = cx - w / 2, y = cy - h / 2, c = 10;
+    poly([[x + c, y], [x + w, y], [x + w, y + h - c], [x + w - c, y + h], [x, y + h], [x, y + c]],
+      { fill: fill, stroke: stroke, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, g);
+    poly([[x + c, y], [x + w, y], [x, y + h * 0.6], [x, y + c]], { fill: '#ffffff', opacity: 0.05 }, g);
+    return g;
+  }
+
+  function tween(duration, easing, onUpdate, onDone) {
+    if (reduced.matches) { onUpdate(1); if (onDone) onDone(); return null; }
+    if (window.anime) {
+      var o = { t: 0 };
+      return anime({
+        targets: o, t: 1, duration: duration, easing: easing || 'easeInOutSine',
+        update: function () { onUpdate(o.t); },
+        complete: function () { if (onDone) onDone(); }
+      });
+    }
+    var start = performance.now(), raf;
+    (function step(now) {
+      var t = Math.min(1, (now - start) / duration);
+      onUpdate(t);
+      if (t < 1) raf = requestAnimationFrame(step); else if (onDone) onDone();
+    })(performance.now());
+    return { pause: function () { cancelAnimationFrame(raf); } };
+  }
+
+  function Runner() {
+    var running = [], timers = [];
+    return {
+      add: function (a) { running.push(a); return a; },
+      later: function (fn, ms) { if (reduced.matches) fn(); else timers.push(setTimeout(fn, ms)); },
+      stop: function () {
+        running.forEach(function (a) { if (a && a.pause) a.pause(); });
+        running = [];
+        timers.forEach(clearTimeout);
+        timers = [];
+      }
+    };
+  }
+  function byId(id) { return document.getElementById(id); }
+
+  // the signature: the verdict re-stamps whenever the outcome changes
+  function stamp(node, label, kind) {
+    var changed = node.textContent !== label;
+    node.textContent = label;
+    node.className = 'stamp ' + kind;
+    if (!changed || reduced.matches) return;
+    void node.offsetWidth;
+    node.classList.add('hit');
+    node.addEventListener('animationend', function h() {
+      node.classList.remove('hit');
+      node.removeEventListener('animationend', h);
+    });
+  }
+
+  /* =====================================================================
+     Panel 1 — translation routing
+     ===================================================================== */
+  var Route = (function () {
+    var SVG = byId('scene-route');
+    var run = Runner();
+    var state = { ver: 'after', env: 'host', host: 'answers' };
+
+    // objects are authored around these anchors, then translated per layout
+    var ANCHOR = {
+      msg: [80, 235], router: [250, 235], host: [456, 120],
+      llm: [690, 120], dev: [520, 355], out: [826, 246]
+    };
+    // landscape reads left to right across a vertical boundary; portrait reads
+    // top to bottom across a horizontal one. Same objects, same colors.
+    var GEO = {
+      wide: {
+        vb: '0 0 900 680',
+        bound: [352, 46, 352, 640], label: [352, 36, 'middle'],
+        pos: { msg: [80, 330], router: [250, 330], host: [456, 130], llm: [690, 130], dev: [520, 540], out: [826, 335] },
+        d: {
+          s1: 'M 136 330 L 214 330',
+          s2a: 'M 286 315 C 330 290 350 145 400 130',
+          s2b: 'M 512 130 L 628 130',
+          s2c: 'M 752 130 C 812 142 830 240 826 291',
+          s3a: 'M 286 348 C 340 400 410 520 460 540',
+          s3b: 'M 580 540 C 700 540 806 450 826 379'
+        },
+        badgeHost: [456, 72], badgeDev: [520, 480], fn: [250, 300, 'middle']
+      },
+      tall: {
+        vb: '0 0 460 460', textScale: 1.2,
+        bound: [16, 368, 444, 368], label: [440, 360, 'end'],
+        pos: { msg: [85, 52], router: [85, 158], host: [110, 415], llm: [330, 415], dev: [300, 158], out: [300, 270] },
+        d: {
+          s1: 'M 85 88 L 85 117',
+          s2a: 'M 52 178 C 18 250 22 330 88 384',
+          s2b: 'M 168 415 L 266 415',
+          s2c: 'M 394 405 C 424 380 396 348 336 314',
+          s3a: 'M 125 158 L 238 158',
+          s3b: 'M 300 191 L 300 226'
+        },
+        // clear of the host-lane path, which sweeps down the left
+        badgeHost: [150, 352], badgeDev: [300, 208], fn: [345, 282, 'start']
+      }
+    };
+    var geo = GEO.wide;
+
+    var boundary = byId('r-bound');
+    var pathIds = ['s1', 's2a', 's2b', 's2c', 's3a', 's3b'];
+    var paths = {};
+    pathIds.forEach(function (id) {
+      var p = byId(id);
+      p.setAttribute('stroke', C.inert);
+      p.setAttribute('stroke-width', '2.5');
+      paths[id] = p;
+    });
+
+    var boundaryLabel = txt(SVG, 0, 0, C.faint, 10, true);
+    var laneHost = el('g', { class: 'lane' }, SVG);
+    var laneDevice = el('g', { class: 'lane' }, SVG);
+
+    var gMsg = el('g', {}, SVG);
+    poly([[30, 206], [126, 200], [136, 238], [120, 262], [40, 268], [24, 240]],
+      { fill: C.plate, stroke: C.signal, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, gMsg);
+    poly([[30, 206], [126, 200], [24, 240]], { fill: '#ffffff', opacity: 0.05 }, gMsg);
+    var msgTxt = txt(gMsg, 80, 240, C.chalk, 17);
+    var msgLabel = txt(gMsg, 80, 292, C.dim, 10, true);
+
+    var gRouter = el('g', {}, SVG);
+    poly([[250, 196], [288, 216], [288, 254], [250, 274], [212, 254], [212, 216]],
+      { fill: C.plate, stroke: C.dim, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, gRouter);
+    poly([[250, 196], [288, 216], [212, 216]], { fill: '#ffffff', opacity: 0.06 }, gRouter);
+    var routeTxt = txt(gRouter, 250, 240, C.chalk, 12, true);
+    var fnLabel = txt(gRouter, 250, 300, C.dim, 11, 'mono');
+    setText(fnLabel, 'translateChatText()');
+
+    var gHost = el('g', {}, laneHost);
+    var hostBox = facetBox(gHost, 456, 120, 112, 62, C.copper, C.hostFill);
+    setText(txt(gHost, 456, 116, C.hostInk, 13), 'agent-client');
+    var hostSub = txt(gHost, 456, 136, C.hostSub, 9.5, true);
+
+    var gLlm = el('g', {}, laneHost);
+    var llmBox = facetBox(gLlm, 690, 120, 124, 62, C.copper, C.hostFill);
+    var llmTxt = txt(gLlm, 690, 125, C.hostInk, 13);
+
+    var gDev = el('g', {}, laneDevice);
+    var devBox = facetBox(gDev, 520, 355, 120, 62, C.signal, C.devFill);
+    var devTxt = txt(gDev, 520, 351, C.devInk, 13);
+    var devSub = txt(gDev, 520, 371, C.devSub, 9.5, true);
+
+    var gOut = el('g', {}, SVG);
+    var outShape = poly([[774, 210], [876, 204], [886, 242], [872, 282], [786, 288], [766, 250]],
+      { fill: C.plate, stroke: C.outEdge, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, gOut);
+    poly([[774, 210], [876, 204], [766, 250]], { fill: '#ffffff', opacity: 0.05 }, gOut);
+    var outTxt = txt(gOut, 826, 252, C.chalk, 17);
+    var outLabel = txt(gOut, 826, 312, C.dim, 10, true);
+
+    var NODES = { msg: gMsg, router: gRouter, host: gHost, llm: gLlm, dev: gDev, out: gOut };
+
+    var badge = el('g', { opacity: 0 }, SVG);
+    var badgeBg = el('rect', { x: 0, y: 0, width: 150, height: 26, fill: '#2a161c', 'stroke-width': 1.4 }, badge);
+    var badgeTxt = txt(badge, 75, 17, C.stop, 11);
+    function showBadge(at, str, color) {
+      setText(badgeTxt, str);
+      var k = geo.textScale || 1;
+      var w = Math.max(110 * k, str.length * 8 * k + 26);
+      badgeBg.setAttribute('width', w);
+      badgeTxt.setAttribute('x', w / 2);
+      badge.setAttribute('transform', 'translate(' + (at[0] - w / 2) + ',' + (at[1] - 13) + ')');
+      badgeBg.setAttribute('stroke', color);
+      badgeTxt.setAttribute('fill', color);
+      badge.setAttribute('opacity', 1);
+    }
+    function hideBadge() { badge.setAttribute('opacity', 0); }
+
+    var packet = el('g', { opacity: 0 }, SVG);
+    var packetShape = poly([[0, -11], [11, 0], [0, 11], [-11, 0]],
+      { fill: C.signal, stroke: C.devInk, 'stroke-width': 1.4 }, packet);
+    function movePacket(x, y) { packet.setAttribute('transform', 'translate(' + x + ',' + y + ')'); }
+    function packetColor(c) {
+      packetShape.setAttribute('fill', c);
+      packetShape.setAttribute('stroke', c === C.ok ? '#c6efd8' : C.devInk);
+    }
+
+    // portrait packs the same objects into half the viewBox width, so its type
+    // is set larger in user units to land at a readable size on screen
+    var TEXTS = [];
+    Array.prototype.forEach.call(SVG.querySelectorAll('text'), function (n) {
+      TEXTS.push({ n: n, s: Number(n.getAttribute('font-size')) });
+    });
+
+    function place(mode) {
+      geo = GEO[mode];
+      SVG.setAttribute('viewBox', geo.vb);
+      var k = geo.textScale || 1;
+      TEXTS.forEach(function (t) { t.n.setAttribute('font-size', (t.s * k).toFixed(1)); });
+      Object.keys(geo.pos).forEach(function (k) {
+        var p = geo.pos[k], a = ANCHOR[k];
+        NODES[k].setAttribute('transform', 'translate(' + (p[0] - a[0]) + ',' + (p[1] - a[1]) + ')');
+      });
+      boundary.setAttribute('x1', geo.bound[0]); boundary.setAttribute('y1', geo.bound[1]);
+      boundary.setAttribute('x2', geo.bound[2]); boundary.setAttribute('y2', geo.bound[3]);
+      boundaryLabel.setAttribute('x', geo.label[0]);
+      boundaryLabel.setAttribute('y', geo.label[1]);
+      boundaryLabel.setAttribute('text-anchor', geo.label[2]);
+      fnLabel.setAttribute('x', geo.fn[0]);
+      fnLabel.setAttribute('y', geo.fn[1]);
+      fnLabel.setAttribute('text-anchor', geo.fn[2]);
+      pathIds.forEach(function (id) { paths[id].setAttribute('d', geo.d[id]); });
+    }
+
+    // Mirrors translateChatText(): After tries translateViaHost() first and
+    // falls back to the on-device Translator API when it resolves null.
+    function outcome(s) {
+      var t = T();
+      if (s.ver === 'before') {
+        return s.env === 'browser'
+          ? { lane: 'device', ok: true, why: t.whyBrowserBefore }
+          : { lane: 'device', ok: false, block: t.noApi, why: t.whyHostBefore };
+      }
+      if (s.env === 'browser') return { lane: 'device', ok: true, why: t.whyBrowserAfter };
+      if (s.host === 'silent') return { lane: 'both', ok: false, block: t.noApi, why: t.whySilent };
+      return { lane: 'host', ok: true, why: t.whyHost };
+    }
+
+    function travel(id, duration, done) {
+      var p = paths[id], len = p.getTotalLength();
+      packet.setAttribute('opacity', 1);
+      run.add(tween(duration, 'easeInOutSine', function (t) {
+        var pt = p.getPointAtLength(len * t);
+        movePacket(pt.x, pt.y);
+      }, done));
+    }
+    function travelBack(id, duration, done) {
+      var p = paths[id], len = p.getTotalLength();
+      run.add(tween(duration, 'easeInOutSine', function (t) {
+        var pt = p.getPointAtLength(len * (1 - t));
+        movePacket(pt.x, pt.y);
+      }, done));
+    }
+    function pulse(node, color) {
+      if (reduced.matches) return;
+      var shape = node.querySelector('polygon');
+      run.add(tween(520, 'easeOutQuad', function (t) {
+        shape.setAttribute('stroke', color);
+        shape.setAttribute('stroke-width', (1.6 + 2.4 * Math.sin(Math.PI * t)).toFixed(2));
+      }));
+    }
+    // A pulse interrupted mid-flight never restores its own stroke.
+    function resetStrokes() {
+      [[hostBox, C.copper], [llmBox, C.copper], [devBox, C.signal]].forEach(function (pair) {
+        var s = pair[0].querySelector('polygon');
+        s.setAttribute('stroke', pair[1]);
+        s.setAttribute('stroke-width', '1.6');
+      });
+    }
+    function paint(id, color) {
+      paths[id].setAttribute('stroke', color);
+      paths[id].setAttribute('stroke-width', color === C.inert ? '2.5' : '3');
+    }
+
+    function setLang() {
+      var t = T();
+      byId('r-h2').textContent = t.rH2;
+      byId('r-in-label').textContent = t.paneIn;
+      byId('r-out-label').textContent = t.paneOut;
+      byId('r-lbl-ver').textContent = t.code;
+      byId('r-lbl-env').textContent = t.runsIn;
+      byId('r-lbl-host').textContent = t.hostLlm;
+      byId('r-replay').textContent = t.replay;
+      byId('route-title').textContent = t.rTitle;
+      document.querySelector('[data-ver="before"]').textContent = t.before;
+      document.querySelector('[data-ver="after"]').textContent = t.after;
+      document.querySelector('[data-env="browser"]').textContent = t.browser;
+      document.querySelector('[data-host="answers"]').textContent = t.answers;
+      document.querySelector('[data-host="silent"]').textContent = t.silent;
+      setText(boundaryLabel, t.boundary);
+      setText(msgLabel, t.chatMessage);
+      setText(routeTxt, t.route);
+      setText(hostSub, t.holdsKey);
+      setText(llmTxt, t.llmEndpoint);
+      setText(devTxt, t.translatorApi);
+      setText(devSub, t.onDevice);
+      setText(outLabel, t.shownInChat);
+      setText(msgTxt, t.src);
+    }
+
+    function render(animate) {
+      run.stop();
+      resetStrokes();
+      hideBadge();
+      packet.setAttribute('opacity', 0);
+      packetColor(C.signal);
+
+      var t = T();
+      var o = outcome(state);
+      var hostUsed = o.lane === 'host' || o.lane === 'both';
+      var deviceUsed = o.lane === 'device' || o.lane === 'both';
+
+      laneHost.classList.toggle('off', !hostUsed);
+      laneDevice.classList.toggle('off', !deviceUsed);
+      pathIds.forEach(function (id) { paint(id, C.inert); });
+      paint('s1', C.signal);
+      if (hostUsed) { paint('s2a', C.copper); paint('s2b', C.copper); }
+      if (o.lane === 'host') paint('s2c', C.copper);
+      if (deviceUsed) { paint('s3a', C.signal); paint('s3b', C.signal); }
+
+      byId('r-takeaway').textContent = state.ver === 'before' ? t.rTakeBefore : t.rTakeAfter;
+      byId('r-snippet').innerHTML = state.ver === 'before'
+        ? 'translateChatText(text, target)\n' +
+          '  <span class="none">' + t.noHostAttempt + '</span>\n' +
+          '  detectLanguage(text) …'
+        : 'translateChatText(text, target)\n' +
+          '<span class="add">  viaHost = await translateViaHost(…)</span>\n' +
+          '<span class="add">  if (viaHost !== null) return viaHost</span>\n' +
+          '  detectLanguage(text) …';
+
+      var shown = o.ok ? t.dst : t.src;
+      setText(outTxt, shown);
+      outShape.setAttribute('stroke', o.ok ? C.ok : C.stop);
+      stamp(byId('r-tag'), o.ok ? t.translated : t.unchanged, o.ok ? 'ok' : 'stop');
+      byId('r-shows').innerHTML = t.shows('<b>“' + shown + '”</b>');
+      byId('r-why').textContent = o.why;
+
+      // the host reply only matters when the host lane is reachable
+      var hostRelevant = state.ver === 'after' && state.env === 'host';
+      document.querySelectorAll('[data-host]').forEach(function (b) { b.disabled = !hostRelevant; });
+
+      if (animate === false || reduced.matches) {
+        if (!o.ok) showBadge(geo.badgeDev, o.block, C.stop);
+        return;
+      }
+      play(o);
+    }
+
+    function deviceLeg(o) {
+      travel('s3a', 480, function () {
+        if (o.ok) {
+          pulse(devBox, C.ok);
+          run.later(function () {
+            packetColor(C.ok);
+            travel('s3b', 460, function () { packet.setAttribute('opacity', 0); });
+          }, 360);
+        } else {
+          showBadge(geo.badgeDev, o.block, C.stop);
+          pulse(devBox, C.stop);
+          run.later(function () {
+            travel('s3b', 460, function () { packet.setAttribute('opacity', 0); });
+          }, 780);
+        }
+      });
+    }
+
+    function play(o) {
+      var start = paths.s1.getPointAtLength(0);
+      movePacket(start.x, start.y);
+      travel('s1', 420, function () {
+        if (o.lane === 'host') {
+          travel('s2a', 480, function () {
+            travel('s2b', 420, function () {
+              pulse(llmBox, C.ok);
+              run.later(function () {
+                packetColor(C.ok);
+                travel('s2c', 480, function () { packet.setAttribute('opacity', 0); });
+              }, 380);
+            });
+          });
+        } else if (o.lane === 'both') {
+          travel('s2a', 480, function () {
+            showBadge(geo.badgeHost, T().timedOut, C.stop);
+            pulse(hostBox, C.stop);
+            run.later(function () {
+              hideBadge();
+              travelBack('s2a', 420, function () { deviceLeg(o); });
+            }, 900);
+          });
+        } else {
+          deviceLeg(o);
+        }
+      });
+    }
+
+    function sync() {
+      ['ver', 'env', 'host'].forEach(function (a) {
+        document.querySelectorAll('[data-' + a + ']').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-' + a) === state[a]));
+        });
+      });
+    }
+    ['ver', 'env', 'host'].forEach(function (a) {
+      document.querySelectorAll('[data-' + a + ']').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (b.disabled) return;
+          state[a] = b.getAttribute('data-' + a);
+          sync();
+          render(true);
+        });
+      });
+    });
+    byId('r-replay').addEventListener('click', function () { render(true); });
+
+    sync();
+    return { render: render, setLang: setLang, place: place, stop: run.stop };
+  })();
+
+  /* =====================================================================
+     Panel 2 — history cap
+     ===================================================================== */
+  var Cap = (function () {
+    var SVG = byId('scene-cap');
+    var run = Runner();
+    var TOTAL = 60, DEFAULT = 41, MIN = 3;
+    var state = { ver: 'after', asked: DEFAULT };
+
+    // Illustrative message sizes; tile height is the token count.
+    var SYSTEM_TOKENS = 900;
+    var USER_TOKENS = [72, 96, 58, 131, 84, 110, 66, 120];
+    var ASSISTANT_TOKENS = [268, 182, 341, 214, 296, 205, 320, 240];
+    function tokensAt(i) {
+      if (i === 0) return SYSTEM_TOKENS;
+      return i % 2
+        ? USER_TOKENS[(i >> 1) % USER_TOKENS.length]
+        : ASSISTANT_TOKENS[(i >> 1) % ASSISTANT_TOKENS.length];
+    }
+    function fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+$)/g, ','); }
+
+    var GEO = {
+      wide: { vb: '0 0 900 560', X0: 40, X1: 860, BASE: 350, K: 0.27, gap: 3.2,
+              capY: 44, meterH: 22, micro: 11, value: 13 },
+      tall: { vb: '0 0 460 400', X0: 18, X1: 442, BASE: 230, K: 0.155, gap: 1.6,
+              capY: 30, meterH: 16, micro: 13, value: 15 }
+    };
+    var P = GEO.wide, step = 0, tileW = 0;
+
+    var captionLabel = txt(SVG, 0, 0, C.dim, 11, true);
+    var baseLine = el('line', { stroke: C.inert, 'stroke-width': 1.5 }, SVG);
+
+    var tiles = [];
+    for (var i = 0; i < TOTAL; i++) {
+      var g = el('g', {}, SVG);
+      var rect = el('rect', { fill: C.inert }, g);
+      // one flat highlight facet keeps the tiles polygonal, not glassy
+      var facet = el('rect', { fill: '#ffffff', opacity: 0.06 }, g);
+      tiles.push({ rect: rect, facet: facet, tokens: tokensAt(i), system: i === 0, full: 0, cur: 0 });
+    }
+    var TOTAL_TOKENS = tiles.reduce(function (n, t) { return n + t.tokens; }, 0);
+    function tokensFor(sent) {
+      var keepFrom = TOTAL - (sent - 1);
+      return tiles.reduce(function (n, t, i) {
+        return n + (t.system || i >= keepFrom ? t.tokens : 0);
+      }, 0);
+    }
+
+    var sysBracket = el('path', { fill: 'none', stroke: C.copper, 'stroke-width': 1.4 }, SVG);
+    var sysLabel = txt(SVG, 0, 0, C.copper, 11, true);
+    sysLabel.setAttribute('text-anchor', 'start');
+    var keptBracket = el('path', { d: '', fill: 'none', stroke: C.ok, 'stroke-width': 1.4 }, SVG);
+    var keptLabel = txt(SVG, 0, 0, C.ok, 11, true);
+    var dropLabel = txt(SVG, 0, 0, C.faint, 11, true);
+
+    // token meter: full track = the whole conversation, fill = what is sent
+    var meterCaption = txt(SVG, 0, 0, C.dim, 11, true);
+    meterCaption.setAttribute('text-anchor', 'start');
+    var meterValue = txt(SVG, 0, 0, C.copper, 13, true);
+    meterValue.setAttribute('text-anchor', 'end');
+    var meterTrack = el('rect', { fill: C.track }, SVG);
+    var meterFill = el('rect', { width: 0, fill: C.copper }, SVG);
+    var meterEdge = el('rect', { fill: 'none', stroke: C.inert, 'stroke-width': 1 }, SVG);
+    var marker = el('g', {}, SVG);
+    var markerLine = el('line', { stroke: C.chalk, 'stroke-width': 1.4 }, marker);
+    var markerLabel = txt(marker, 0, 0, C.marker, 11, true);
+    markerLabel.setAttribute('text-anchor', 'end');
+
+    function place(mode) {
+      P = GEO[mode];
+      SVG.setAttribute('viewBox', P.vb);
+      step = (P.X1 - P.X0) / TOTAL;
+      tileW = step - P.gap;
+
+      captionLabel.setAttribute('x', (P.X0 + P.X1) / 2);
+      captionLabel.setAttribute('y', P.capY);
+      captionLabel.setAttribute('font-size', P.micro);
+      baseLine.setAttribute('x1', P.X0 - 6); baseLine.setAttribute('x2', P.X1 + 6);
+      baseLine.setAttribute('y1', P.BASE + 1); baseLine.setAttribute('y2', P.BASE + 1);
+
+      tiles.forEach(function (t, i) {
+        t.full = t.tokens * P.K;
+        t.cur = t.full;
+        var x = (P.X0 + i * step).toFixed(2);
+        t.rect.setAttribute('x', x); t.rect.setAttribute('width', tileW.toFixed(2));
+        t.facet.setAttribute('x', x); t.facet.setAttribute('width', (tileW / 2).toFixed(2));
+      });
+
+      var b1 = P.BASE + 18, b2 = P.BASE + 26;
+      sysBracket.setAttribute('d', 'M ' + (P.X0 - 4) + ' ' + b1 + ' L ' + (P.X0 - 4) + ' ' + b2 +
+        ' L ' + (P.X0 + tileW + 4) + ' ' + b2 + ' L ' + (P.X0 + tileW + 4) + ' ' + b1);
+      sysLabel.setAttribute('x', P.X0 + tileW + 10);
+      sysLabel.setAttribute('y', P.BASE + 64);
+      [keptLabel, dropLabel].forEach(function (n) { n.setAttribute('y', P.BASE + 46); });
+      [sysLabel, keptLabel, dropLabel].forEach(function (n) { n.setAttribute('font-size', P.micro); });
+
+      var my = P.BASE + 104;
+      meterCaption.setAttribute('x', P.X0); meterCaption.setAttribute('y', my - 10);
+      meterCaption.setAttribute('font-size', P.micro);
+      meterValue.setAttribute('x', P.X1); meterValue.setAttribute('y', my - 10);
+      meterValue.setAttribute('font-size', P.value);
+      [meterTrack, meterEdge].forEach(function (n) {
+        n.setAttribute('x', P.X0); n.setAttribute('y', my);
+        n.setAttribute('width', P.X1 - P.X0); n.setAttribute('height', P.meterH);
+      });
+      meterFill.setAttribute('x', P.X0); meterFill.setAttribute('y', my);
+      meterFill.setAttribute('height', P.meterH); meterFill.setAttribute('width', 0);
+
+      var mx = P.X0 + (P.X1 - P.X0) * (tokensFor(DEFAULT) / TOTAL_TOKENS);
+      markerLine.setAttribute('x1', mx); markerLine.setAttribute('x2', mx);
+      markerLine.setAttribute('y1', my - 5); markerLine.setAttribute('y2', my + P.meterH + 5);
+      markerLabel.setAttribute('x', mx - 6);
+      markerLabel.setAttribute('y', my + P.meterH + 18);
+      markerLabel.setAttribute('font-size', P.micro);
+    }
+
+    function effective(s) {
+      if (s.ver === 'before') return { value: DEFAULT, kind: 'fixed' };
+      if (s.asked < MIN) return { value: MIN, kind: 'clamped' };
+      return { value: s.asked, kind: 'honored' };
+    }
+
+    var slider = byId('c-slider');
+
+    function setLang() {
+      var t = T();
+      byId('c-h2').textContent = t.cH2;
+      byId('c-in-label').textContent = t.paneIn;
+      byId('c-out-label').textContent = t.paneOut;
+      byId('c-lbl-ver').textContent = t.code;
+      byId('c-lbl-slider').textContent = t.configAsks;
+      byId('c-reset').textContent = t.resetTo;
+      byId('cap-title').textContent = t.cTitle;
+      document.querySelector('[data-cver="before"]').textContent = t.before;
+      document.querySelector('[data-cver="after"]').textContent = t.after;
+      setText(captionLabel, t.caption);
+      setText(sysLabel, t.systemKept);
+      setText(keptLabel, t.recentTurns);
+      setText(meterCaption, t.tokensPerCall);
+      setText(markerLabel, t.oldFixedCost);
+    }
+
+    function render(animate) {
+      run.stop();
+      var t = T();
+      var eff = effective(state);
+      var sent = Math.min(TOTAL, eff.value);
+      // system prompt plus the last (cap - 1) messages
+      var keepFrom = TOTAL - (sent - 1);
+
+      var targets = tiles.map(function (tile, i) {
+        var kept = tile.system || i >= keepFrom;
+        return {
+          tile: tile, kept: kept, from: tile.cur,
+          h: kept ? tile.full : 5,
+          fill: tile.system ? C.copper : (kept ? C.ok : C.inert)
+        };
+      });
+      targets.forEach(function (d) {
+        d.tile.rect.setAttribute('fill', d.fill);
+        d.tile.facet.setAttribute('opacity', d.kept ? 0.06 : 0);
+      });
+
+      var sentTokens = tokensFor(sent);
+      var meterFrom = Number(meterFill.getAttribute('width'));
+      var meterTo = (P.X1 - P.X0) * (sentTokens / TOTAL_TOKENS);
+
+      // cur tracks every frame, so an interrupted tween resumes from what is drawn
+      function apply(p) {
+        targets.forEach(function (d) {
+          var h = d.from + (d.h - d.from) * p;
+          d.tile.cur = h;
+          d.tile.rect.setAttribute('y', (P.BASE - h).toFixed(2));
+          d.tile.rect.setAttribute('height', h.toFixed(2));
+          d.tile.facet.setAttribute('y', (P.BASE - h).toFixed(2));
+          d.tile.facet.setAttribute('height', h.toFixed(2));
+        });
+        meterFill.setAttribute('width', (meterFrom + (meterTo - meterFrom) * p).toFixed(2));
+      }
+      if (animate === false || reduced.matches) apply(1);
+      else run.add(tween(420, 'easeOutQuad', apply, function () { apply(1); }));
+
+      // brackets under the kept window and the dropped span
+      var keepX = P.X0 + Math.max(keepFrom, 1) * step;
+      var b1 = P.BASE + 18, b2 = P.BASE + 26;
+      var showKept = sent > 1 && keepFrom < TOTAL;
+      keptBracket.setAttribute('d', showKept
+        ? 'M ' + keepX.toFixed(1) + ' ' + b1 + ' L ' + keepX.toFixed(1) + ' ' + b2 +
+          ' L ' + (P.X1 + 2) + ' ' + b2 + ' L ' + (P.X1 + 2) + ' ' + b1
+        : '');
+      keptLabel.setAttribute('opacity', showKept ? 1 : 0);
+      keptLabel.setAttribute('x', ((keepX + P.X1) / 2).toFixed(1));
+
+      var showDrop = keepFrom > 1;
+      dropLabel.setAttribute('opacity', showDrop ? 1 : 0);
+      setText(dropLabel, t.dropped(keepFrom - 1));
+      dropLabel.setAttribute('x', ((P.X0 + step * 1.4 + keepX) / 2).toFixed(1));
+
+      byId('c-takeaway').textContent = state.ver === 'before' ? t.cTakeBefore : t.cTakeAfter;
+      byId('c-snippet').innerHTML = state.ver === 'before'
+        ? '<span class="cut">' + t.hardCoded + '</span>\n' +
+          '<span class="cut">const MAX_MESSAGES: usize = 41;</span>\n' +
+          'if turn.len() &gt; MAX_MESSAGES {'
+        : '<span class="add">' + t.fromConfig + '</span>\n' +
+          '<span class="add">pub max_messages: usize,</span>\n' +
+          '<span class="add">  .max(MIN_MAX_MESSAGES)</span>\n' +
+          'if turn.len() &gt; max_messages {';
+
+      var saved = TOTAL_TOKENS - sentTokens;
+      var pct = Math.round((saved / TOTAL_TOKENS) * 100);
+      setText(meterValue, t.meter(fmt(sentTokens), fmt(TOTAL_TOKENS)));
+      marker.setAttribute('opacity', state.ver === 'after' ? 1 : 0);
+
+      byId('c-cost').innerHTML = saved > 0
+        ? t.cost(sent, fmt(sentTokens), fmt(saved), pct)
+        : t.costFull(sent, fmt(sentTokens));
+
+      if (eff.kind === 'fixed') {
+        stamp(byId('c-tag'), t.ignored, 'warn');
+        byId('c-why').textContent = t.whyIgnored(state.asked);
+      } else if (eff.kind === 'clamped') {
+        stamp(byId('c-tag'), t.clamped, 'warn');
+        byId('c-why').textContent = t.whyClamped(state.asked);
+      } else {
+        stamp(byId('c-tag'), t.honored, 'ok');
+        byId('c-why').textContent = t.whyHonored(sent - 1);
+      }
+
+      slider.value = String(state.asked);
+      slider.setAttribute('aria-valuetext', t.sliderValue(state.asked, sent));
+    }
+
+    document.querySelectorAll('[data-cver]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.ver = b.getAttribute('data-cver');
+        document.querySelectorAll('[data-cver]').forEach(function (o) {
+          o.setAttribute('aria-pressed', String(o.getAttribute('data-cver') === state.ver));
+        });
+        render(true);
+      });
+    });
+    slider.addEventListener('input', function () {
+      state.asked = Number(slider.value);
+      render(true);
+    });
+    byId('c-reset').addEventListener('click', function () {
+      state.asked = DEFAULT;
+      render(true);
+    });
+
+    return { render: render, setLang: setLang, place: place, stop: run.stop };
+  })();
+
+  /* ===================== tabs, layout mode, language ===================== */
+  var order = ['route', 'cap'];
+  var panels = {
+    route: { tab: byId('tab-route'), panel: byId('panel-route'), stage: byId('scene-route'), mod: Route },
+    cap: { tab: byId('tab-cap'), panel: byId('panel-cap'), stage: byId('scene-cap'), mod: Cap }
+  };
+  var current = 'route';
+  var mode = '';
+
+  // the scene is laid out for the box it actually gets, so nothing scrolls.
+  // A small landscape box still gets the portrait scene: half the viewBox
+  // width means twice the scale, which is what keeps its labels readable.
+  function measure() {
+    var box = panels[current].stage.getBoundingClientRect();
+    var next = box.width && box.height
+      ? (box.width >= 620 && box.width / box.height >= 1.15 ? 'wide' : 'tall')
+      : (window.innerWidth >= 900 ? 'wide' : 'tall');
+    if (next === mode) return false;
+    mode = next;
+    Route.place(mode); Cap.place(mode);
+    return true;
+  }
+
+  function select(key, animate) {
+    current = key;
+    order.forEach(function (k) {
+      var p = panels[k], on = k === key;
+      p.tab.setAttribute('aria-selected', String(on));
+      p.tab.tabIndex = on ? 0 : -1;
+      p.panel.hidden = !on;
+      if (!on) p.mod.stop();
+    });
+    measure();
+    panels[key].mod.render(animate);
+  }
+  order.forEach(function (k, i) {
+    panels[k].tab.addEventListener('click', function () { select(k, true); });
+    panels[k].tab.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1
+            : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var next = order[(i + d + order.length) % order.length];
+      select(next, true);
+      panels[next].tab.focus();
+    });
+  });
+
+  function applyLang(animate) {
+    var t = T();
+    document.documentElement.lang = lang;
+    document.title = t.h1;
+    byId('t-h1').textContent = t.h1;
+    byId('tab-route').textContent = t.tabRoute;
+    byId('tab-cap').textContent = t.tabCap;
+    document.querySelectorAll('[data-lang]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang));
+    });
+    Route.setLang(); Cap.setLang();
+    // the hidden panel still needs its copy refreshed for when it opens
+    order.forEach(function (k) {
+      if (k !== current) panels[k].mod.render(false);
+    });
+    panels[current].mod.render(animate);
+  }
+  document.querySelectorAll('[data-lang]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      lang = b.getAttribute('data-lang');
+      try { localStorage.setItem('openmmo-anim-lang', lang); } catch (e) { /* file:// */ }
+      applyLang(false);
+    });
+  });
+
+  var pending = 0;
+  window.addEventListener('resize', function () {
+    if (pending) return;
+    pending = requestAnimationFrame(function () {
+      pending = 0;
+      if (measure()) panels[current].mod.render(false);
+    });
+  });
+  reduced.addEventListener('change', function () { applyLang(false); });
+
+  // meaningful static state first, then enhance
+  measure();
+  applyLang(false);
+  select('route', false);
+  if (!reduced.matches) setTimeout(function () { Route.render(true); }, 260);
+})();
+</script>
+</body>
+</html>
