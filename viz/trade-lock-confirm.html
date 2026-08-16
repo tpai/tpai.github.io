@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="ko" data-lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>제안이 바뀌면 봉인이 깨진다 — OpenMMO 플레이어 거래</title>
+    <style>
+      :root {
+        --ink: #080c12;
+        --edge: rgba(255, 255, 255, 0.14);
+        --brass: #f0c040;
+        --brass-dim: #8a6f28;
+        --slate: #9fb2c3;
+        --dim: #6b7d8d;
+        --good: #8ae29a;
+        --bad: #ff9a8a;
+        --mono: 'Courier New', 'Apple SD Gothic Neo', 'Malgun Gothic',
+          'PingFang TC', 'Microsoft JhengHei', ui-monospace, monospace;
+        --display: 'Iowan Old Style', 'Hoefler Text', 'Palatino Linotype',
+          'Nanum Myeongjo', AppleMyungjo, 'Songti TC', 'Noto Serif TC', Georgia,
+          serif;
+        /* Courier New's Latin space is far too wide for spaced Hangul. */
+        --ui: var(--mono);
+      }
+
+      :root[data-lang='ko'] {
+        --ui: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui,
+          sans-serif;
+      }
+
+      :root[data-lang='zh-Hant'] {
+        --ui: 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', system-ui,
+          sans-serif;
+      }
+
+      .takeaway,
+      .mode-note,
+      .status .line,
+      button.act,
+      .segmented.lang button,
+      .name,
+      .plate-label,
+      .chip-text,
+      .band-label,
+      .wire {
+        font-family: var(--ui);
+      }
+
+      /* CJK titles carry their own punctuation; only spaced scripts want a gap. */
+      h1 em::before {
+        content: '\00a0';
+      }
+
+      :root[data-lang='zh-Hant'] h1 em::before {
+        content: '';
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(
+          120% 90% at 50% 0%,
+          #16202c 0%,
+          var(--ink) 55%,
+          #05080c 100%
+        );
+        color: #e6edf3;
+        font-family: var(--mono);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        height: 100dvh;
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: clamp(10px, 2vh, 20px) clamp(12px, 3vw, 28px);
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: clamp(6px, 1.2vh, 12px);
+      }
+
+      .eyebrow {
+        margin: 0 0 4px;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--brass-dim);
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: clamp(23px, 4.2vh, 38px);
+        line-height: 1.12;
+      }
+
+      h1 em {
+        font-style: italic;
+        color: var(--brass);
+      }
+
+      .takeaway {
+        margin: 6px 0 0;
+        max-width: 66ch;
+        font-size: clamp(12px, 1.7vh, 14px);
+        line-height: 1.5;
+        color: var(--slate);
+      }
+
+      .switchbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .segmented {
+        display: inline-flex;
+        border: 1px solid var(--edge);
+        border-radius: 4px;
+        overflow: hidden;
+        flex: none;
+      }
+
+      .segmented button {
+        appearance: none;
+        border: none;
+        background: none;
+        color: var(--slate);
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        padding: 7px 14px;
+        cursor: pointer;
+        transition:
+          background 150ms ease,
+          color 150ms ease;
+      }
+
+      .segmented.lang button {
+        letter-spacing: 0.02em;
+        padding: 7px 11px;
+      }
+
+      .segmented button + button {
+        border-left: 1px solid var(--edge);
+      }
+
+      .segmented button[aria-pressed='true'] {
+        background: var(--brass);
+        color: #1a1206;
+      }
+
+      .segmented button:hover:not([aria-pressed='true']) {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+      }
+
+      .mode-note {
+        font-size: 12px;
+        color: var(--slate);
+        line-height: 1.4;
+        flex: 1 1 240px;
+        min-width: 0;
+      }
+
+      .mode-note b {
+        color: #e6edf3;
+        font-weight: 700;
+      }
+
+      .scene {
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      svg.board {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        display: block;
+      }
+
+      .name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        fill: var(--slate);
+      }
+
+      .plate-label {
+        font-size: 15px;
+        fill: #e6edf3;
+      }
+
+      .ench {
+        font-family: var(--display);
+        font-size: 40px;
+        font-weight: 700;
+        fill: var(--brass);
+      }
+
+      .ench.zero {
+        fill: var(--bad);
+      }
+
+      .gold-text {
+        font-family: var(--display);
+        font-size: 30px;
+        font-weight: 700;
+        fill: var(--brass);
+      }
+
+      .chip-text {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+
+      .band-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        fill: var(--dim);
+      }
+
+      .wire {
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        fill: var(--slate);
+      }
+
+      /* CJK: no tracking (it fakes emphasis), looser leading on copy. */
+      :root[data-lang='ko'] .band-label,
+      :root[data-lang='zh-Hant'] .band-label,
+      :root[data-lang='ko'] .chip-text,
+      :root[data-lang='zh-Hant'] .chip-text,
+      :root[data-lang='ko'] .name,
+      :root[data-lang='zh-Hant'] .name {
+        letter-spacing: normal;
+      }
+
+      :root[data-lang='ko'] .chip-text,
+      :root[data-lang='zh-Hant'] .chip-text {
+        font-size: 11px;
+      }
+
+      :root[data-lang='ko'] .takeaway,
+      :root[data-lang='zh-Hant'] .takeaway,
+      :root[data-lang='ko'] .status .line,
+      :root[data-lang='zh-Hant'] .status .line,
+      :root[data-lang='ko'] .mode-note,
+      :root[data-lang='zh-Hant'] .mode-note {
+        line-height: 1.7;
+      }
+
+      .chip,
+      .seal {
+        transition: opacity 200ms ease;
+      }
+
+      .chip[data-on='false'],
+      .seal[data-on='false'] {
+        opacity: 0.18;
+      }
+
+      .movable {
+        transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .packet {
+        opacity: 0;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px 16px;
+        align-items: end;
+      }
+
+      .controls > * {
+        min-width: 0;
+      }
+
+      .btnrow {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+
+      button.act {
+        appearance: none;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        padding: 9px 14px;
+        border-radius: 4px;
+        border: 1px solid var(--edge);
+        background: none;
+        color: var(--slate);
+        cursor: pointer;
+        transition:
+          background 150ms ease,
+          color 150ms ease,
+          border-color 150ms ease;
+      }
+
+      button.act:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.34);
+        color: #fff;
+      }
+
+      button.act.primary {
+        background: rgba(240, 192, 64, 0.16);
+        border-color: rgba(240, 192, 64, 0.5);
+        color: var(--brass);
+      }
+
+      button.act.primary:hover:not(:disabled) {
+        background: rgba(240, 192, 64, 0.28);
+        color: #ffe9a8;
+      }
+
+      button.act.danger {
+        border-color: rgba(255, 154, 138, 0.4);
+        color: var(--bad);
+      }
+
+      button.act.danger:hover:not(:disabled) {
+        background: rgba(255, 154, 138, 0.14);
+        color: #ffd0c6;
+      }
+
+      button.act:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+
+      button:focus-visible {
+        outline: 2px solid var(--brass);
+        outline-offset: 2px;
+      }
+
+      .status {
+        border-left: 3px solid var(--edge);
+        padding: 6px 0 6px 12px;
+        min-height: 44px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
+      }
+
+      .status .line {
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--slate);
+      }
+
+      .status .line b {
+        color: #e6edf3;
+      }
+
+      .status[data-tone='good'] {
+        border-color: var(--good);
+      }
+      .status[data-tone='good'] .verdict {
+        color: var(--good);
+      }
+      .status[data-tone='bad'] {
+        border-color: var(--bad);
+      }
+      .status[data-tone='bad'] .verdict {
+        color: var(--bad);
+      }
+      .status[data-tone='blocked'] {
+        border-color: var(--brass);
+      }
+      .status[data-tone='blocked'] .verdict {
+        color: var(--brass);
+      }
+
+      .verdict {
+        font-weight: 700;
+      }
+
+      @media (max-width: 720px) {
+        .controls {
+          grid-template-columns: 1fr;
+        }
+        .takeaway {
+          font-size: 12px;
+        }
+        .btnrow button.act {
+          flex: 1 1 auto;
+          padding: 10px 8px;
+          font-size: 11px;
+        }
+        .mode-note {
+          font-size: 11px;
+          flex-basis: 100%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 1ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <p class="eyebrow">OpenMMO · feature/player-trade</p>
+        <h1><span id="title-a"></span><em id="title-b"></em></h1>
+        <p class="takeaway" id="takeaway"></p>
+      </header>
+
+      <div class="switchbar">
+        <div class="segmented" role="group" aria-label="Before / After">
+          <button id="btn-before" type="button" aria-pressed="false">
+            Before
+          </button>
+          <button id="btn-after" type="button" aria-pressed="true">After</button>
+        </div>
+        <div class="segmented lang" role="group" aria-label="Language">
+          <button id="lang-ko" type="button" lang="ko" aria-pressed="true">
+            한국어
+          </button>
+          <button id="lang-zh" type="button" lang="zh-Hant" aria-pressed="false">
+            繁中
+          </button>
+          <button id="lang-en" type="button" lang="en" aria-pressed="false">
+            EN
+          </button>
+        </div>
+        <p class="mode-note" id="mode-note"></p>
+      </div>
+
+      <div class="scene">
+        <svg
+          class="board"
+          viewBox="0 0 900 560"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-labelledby="board-title"
+        >
+          <title id="board-title"></title>
+
+          <!-- traders (both modes) -->
+          <g>
+            <text class="name" id="name-hans" x="250" y="40"
+              text-anchor="middle"></text>
+            <polygon points="206,215 226,56 274,56 294,215" fill="#1d2a38" />
+            <polygon points="250,56 274,56 294,215 250,215" fill="#26374a" />
+            <polygon points="232,74 268,74 262,108 238,108" fill="#2f4356" />
+          </g>
+          <g>
+            <text class="name" id="name-you" x="650" y="40"
+              text-anchor="middle"></text>
+            <polygon points="602,215 602,64 698,64 698,215" fill="#1d2a38" />
+            <polygon points="650,64 698,64 698,215 650,215" fill="#26374a" />
+            <polygon points="632,76 668,76 662,108 638,108" fill="#3d5a4a" />
+          </g>
+
+          <!-- ================= BEFORE: bare ground ================= -->
+          <g id="ground-scene">
+            <line x1="60" y1="300" x2="840" y2="300"
+              stroke="rgba(255,255,255,0.13)" stroke-dasharray="6 8" />
+            <text class="band-label" data-i18n="groundLabel" x="60" y="294"></text>
+            <text class="band-label" data-i18n="groundAnyone" x="840" y="294"
+              text-anchor="end"></text>
+
+            <g id="ground-sword" class="movable">
+              <polygon points="243,232 257,232 253,288 247,288" fill="#c9d6e2" />
+              <polygon points="250,232 257,232 253,288" fill="#8fa3b6" />
+              <polygon points="229,288 271,288 266,298 234,298" fill="#6b5636" />
+              <text class="chip-text" data-i18n="groundSword" x="250" y="322"
+                text-anchor="middle" fill="#9fb2c3"></text>
+            </g>
+
+            <g id="ground-purse" class="movable">
+              <polygon points="622,286 678,286 670,300 630,300" fill="#8a6f28" />
+              <polygon points="627,268 673,268 665,286 635,286" fill="#c9a13c" />
+              <polygon points="632,250 668,250 660,268 640,268" fill="#f0c040" />
+              <text class="chip-text" data-i18n="groundGold" x="650" y="322"
+                text-anchor="middle" fill="#9fb2c3"></text>
+            </g>
+
+            <text class="wire" id="ground-note" x="450" y="392"
+              text-anchor="middle" fill="#6b7d8d"></text>
+          </g>
+
+          <!-- ================= AFTER: the trade window ================= -->
+          <g id="window-scene">
+            <text class="band-label" data-i18n="windowBand" x="60" y="212"></text>
+            <polygon points="60,224 840,224 866,300 820,404 80,404 34,300"
+              fill="#0f1922" stroke="rgba(255,255,255,0.10)" />
+            <polygon points="60,224 840,224 866,300 34,300" fill="#1c3a38" />
+            <polygon points="60,224 840,224 640,272 260,272" fill="#24504b" />
+
+            <g>
+              <polygon points="112,240 390,240 402,268 390,362 112,362 100,268"
+                fill="#14202b" stroke="rgba(240,192,64,0.34)" />
+              <polygon points="146,262 160,262 156,330 150,330" fill="#c9d6e2" />
+              <polygon points="153,262 160,262 156,330" fill="#8fa3b6" />
+              <polygon points="132,330 174,330 169,342 137,342" fill="#6b5636" />
+              <text class="plate-label" data-i18n="itemName" x="192" y="282"></text>
+              <text class="ench" id="ench" x="192" y="330">+7</text>
+              <text class="chip-text" data-i18n="enchNote" x="192" y="352"
+                fill="#6b7d8d"></text>
+            </g>
+
+            <g>
+              <polygon points="510,240 788,240 800,268 788,362 510,362 498,268"
+                fill="#14202b" stroke="rgba(240,192,64,0.34)" />
+              <polygon points="534,330 590,330 582,344 542,344" fill="#8a6f28" />
+              <polygon points="539,314 585,314 577,330 547,330" fill="#c9a13c" />
+              <polygon points="544,298 580,298 572,314 552,314" fill="#f0c040" />
+              <text class="plate-label" data-i18n="purseLabel" x="610" y="282"></text>
+              <text class="gold-text" x="610" y="334">40g</text>
+            </g>
+
+            <g class="chip" id="their-lock" data-on="false">
+              <polygon points="118,420 208,420 218,438 208,456 118,456 108,438"
+                fill="#1d2a38" stroke="rgba(240,192,64,0.55)" />
+              <text class="chip-text" data-i18n="chipLocked" x="163" y="442"
+                text-anchor="middle" fill="#f0c040"></text>
+            </g>
+            <g class="seal" id="their-seal" data-on="false">
+              <polygon points="286,418 310,408 334,418 344,438 334,458 310,468 286,458 276,438"
+                fill="rgba(138,226,154,0.20)" stroke="#8ae29a" />
+              <text class="chip-text" data-i18n="chipSealed" x="310" y="442"
+                text-anchor="middle" fill="#8ae29a"></text>
+            </g>
+            <g class="chip" id="your-lock" data-on="false">
+              <polygon points="518,420 608,420 618,438 608,456 518,456 508,438"
+                fill="#1d2a38" stroke="rgba(240,192,64,0.55)" />
+              <text class="chip-text" data-i18n="chipLocked" x="563" y="442"
+                text-anchor="middle" fill="#f0c040"></text>
+            </g>
+            <g class="seal" id="your-seal" data-on="false">
+              <polygon points="686,418 710,408 734,418 744,438 734,458 710,468 686,458 676,438"
+                fill="rgba(138,226,154,0.20)" stroke="#8ae29a" />
+              <text class="chip-text" data-i18n="chipSealed" x="710" y="442"
+                text-anchor="middle" fill="#8ae29a"></text>
+            </g>
+          </g>
+
+          <!-- ============ AFTER: the wire ============ -->
+          <g id="server-scene">
+            <line x1="34" y1="486" x2="866" y2="486"
+              stroke="rgba(255,255,255,0.10)" />
+            <text class="band-label" data-i18n="wireBand" x="60" y="508"></text>
+            <polygon points="150,516 172,528 172,552 150,564 128,552 128,528"
+              fill="#16212c" stroke="rgba(255,255,255,0.24)" />
+            <text class="chip-text" x="150" y="544" text-anchor="middle"
+              fill="#9fb2c3">SRV</text>
+            <line x1="180" y1="540" x2="700" y2="540"
+              stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 7" />
+            <text class="wire" id="rev-text" x="840" y="544"
+              text-anchor="end"></text>
+            <g class="packet" id="packet">
+              <polygon points="700,528 714,540 700,552 686,540" fill="#8ae29a" />
+              <text class="chip-text" id="packet-text" x="700" y="518"
+                text-anchor="middle" fill="#8ae29a"></text>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="controls">
+        <div class="status" id="status" data-tone="idle">
+          <p class="line" id="status-main"></p>
+          <p class="line verdict" id="status-verdict"></p>
+        </div>
+        <div class="btnrow">
+          <button class="act danger" id="btn-hans" type="button"></button>
+          <button class="act primary" id="btn-act" type="button"></button>
+          <button class="act" id="btn-cancel" type="button"></button>
+          <button class="act" id="btn-reset" type="button"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+    <script>
+      /* The server's own refusal strings stay in English inside quotes:
+         they are the literal wire text, not UI copy. */
+      const I18N = {
+        ko: {
+          docTitle: '제안이 바뀌면 봉인이 깨진다 — OpenMMO 플레이어 거래',
+          titleA: '제안이 바뀌면,',
+          titleB: '봉인이 깨진다',
+          boardAlt:
+            '한스와 휴고의 거래. Before: 물건을 둘 사이 바닥에 내려놓는다. After: 잠금 칩과 봉인이 있는 거래창, 그 아래에 revision 검사를 나르는 서버 구간.',
+          takeawayAfter:
+            '제안이 바뀌면 양쪽 봉인이 함께 깨진다 — 언제나 다시 보고 봉인하거나, 그냥 나간다.',
+          takeawayBefore:
+            '거래가 아예 없었다. 바닥에 내려놓고 상대가 지키기를 바라는 수밖에.',
+          noteAfter:
+            '<b>After</b> — 함께 보는 창, 잠금, 그리고 변경 한 번에 깨지는 봉인.',
+          noteBefore: '<b>Before</b> — master: 바닥에 놓고 믿는다.',
+          nameHans: 'HANS',
+          nameYou: '나 · HUGO',
+          groundLabel: '바닥',
+          groundAnyone: '누구나 주워 간다',
+          groundSword: '+7 철검',
+          groundGold: '40 골드',
+          windowBand: '거래창 · 둘 다 보는 것',
+          wireBand: '통신 구간 · 플레이어는 못 본다',
+          itemName: '철검',
+          enchNote: '+0과 +7은 이름도 아이콘도 같다',
+          purseLabel: '내 지갑',
+          chipLocked: '잠김',
+          chipSealed: '봉인',
+          sessionRev: (n) => '세션 rev ' + n,
+          btnHansSwap: '한스가 검을 바꿔치기',
+          btnHansSwapBack: '한스가 도로 바꿔치기',
+          btnHansTake: '한스가 골드를 주워 간다',
+          btnLock: '제안 잠그기',
+          btnConfirm: '확인',
+          btnDrop: '40골드를 바닥에 놓기',
+          btnAsk: '한스에게 검을 놓아달라고 하기',
+          btnCancel: '거래 취소',
+          btnReset: '처음부터',
+          afterIntro:
+            '한스가 +7 철검을 40골드에 내놓았다. 내 쪽을 잠그고 확인하라.',
+          beforeIntro:
+            '한스가 +7 철검을 40골드에 넘기겠다고 한다. 거래창은 없다 — 바닥뿐이다.',
+          beforeDropped:
+            '40골드를 바닥에 놓았다. 한스는 주워 갈 수도, 검을 놓을 수도, 아무것도 안 할 수도 있다.',
+          groundNote:
+            '한스를 붙잡아 두는 것은 아무것도 없다. 지나가던 누구든 주워 갈 수 있다.',
+          beforeTaken: '한스가 40골드를 주워 그대로 가버렸다.',
+          beforeTakenV:
+            '예약도 없고 원자성도 없다. 애초에 취소할 거래가 없었다.',
+          beforeGood: '한스가 검을 내려놓았다. 둘 다 주웠다.',
+          beforeGoodV: '그가 그러기로 했기 때문에 된 것뿐, 강제한 것은 없다.',
+          lockedYou: '내 쪽이 얼어붙었다 — 이제 수정할 수 없다. 한스도 잠근다.',
+          lockedBoth: '양쪽 모두 잠갔다. 확인하면 봉인된다.',
+          inFlight:
+            '확인이 서버로 가는 중이다. <b>지금 한스가 바꾸게 해보라</b> — 확인은 한발 늦게 도착한다.',
+          swapUnlock:
+            '한스가 잠금을 푼다 — 서버는 잠긴 쪽의 수정을 거부한다 — 그리고 검을 바꿔치기한다. <b>양쪽 봉인이 깨진다.</b>',
+          swap: '한스가 검을 바꿔치기한다. <b>양쪽 봉인이 깨진다.</b>',
+          lookAgain: '숫자를 다시 보고, 확인하거나 취소하라.',
+          relocked:
+            '한스가 다시 잠그고 기다린다. 내 봉인은 사라졌다 — 아까 합의한 것에 더는 묶이지 않는다.',
+          refused:
+            '거부됨: <b>“The offer changed — look again.”</b> 내 봉인은 이미 깨져 있었다.',
+          refusedV: (s, c) =>
+            '통신 구간: 보낸 것은 rev ' +
+            s +
+            ', 세션은 rev ' +
+            c +
+            '. 아무것도 움직이지 않았다.',
+          waiting: '한스가 아직 잠그지 않았다. 확인은 대기한다.',
+          committed:
+            '양쪽 봉인이 유지됐다. 거래가 성립하고 두 캐릭터 모두 즉시 저장됐다.',
+          committedGoodV: '봉인한 그 +7 철검을 받았다.',
+          committedBadV: '+0 철검을 받았다 — 눈 뜨고 직접 봉인한 그 물건이다.',
+          cancelled: '<b>거래를 취소했다.</b> 양쪽 창이 닫힌다.',
+          cancelledV:
+            '골드는 가방을 떠난 적이 없다. 나가는 데 드는 비용은 시간뿐이다.',
+        },
+
+        'zh-Hant': {
+          docTitle: '提案一改，封緘就破 — OpenMMO 玩家交易',
+          titleA: '提案一改，',
+          titleB: '封緘就破',
+          boardAlt:
+            '漢斯與雨果的交易。Before：東西丟在兩人之間的地上。After：帶有鎖定與封緘的交易視窗，下方是負責 revision 檢查的伺服器通道。',
+          takeawayAfter:
+            '任一方更動提案，雙方封緘立刻作廢，你必重看再確認。',
+          takeawayBefore:
+            '以前沒有交易，只能把東西丟在地上，祈禱對方守約。',
+          noteAfter: '<b>After</b> — 共用視窗、鎖定，以及一改就碎的封緘。',
+          noteBefore: '<b>Before</b> — master：丟在地上，然後祈禱。',
+          nameHans: 'HANS',
+          nameYou: '你 · HUGO',
+          groundLabel: '地面',
+          groundAnyone: '誰都能撿走',
+          groundSword: '+7 鐵劍',
+          groundGold: '40 金幣',
+          windowBand: '交易視窗 · 雙方可見',
+          wireBand: '傳輸層 · 玩家看不到',
+          itemName: '鐵劍',
+          enchNote: '+0 與 +7 名稱與圖示完全相同',
+          purseLabel: '你的錢袋',
+          chipLocked: '已鎖定',
+          chipSealed: '已封緘',
+          sessionRev: (n) => '工作階段 rev ' + n,
+          btnHansSwap: '漢斯掉包長劍',
+          btnHansSwapBack: '漢斯換回長劍',
+          btnHansTake: '漢斯撿走金幣',
+          btnLock: '鎖定提案',
+          btnConfirm: '確認',
+          btnDrop: '把 40 金幣放到地上',
+          btnAsk: '請漢斯把劍放下',
+          btnCancel: '取消交易',
+          btnReset: '重來',
+          afterIntro:
+            '漢斯開價 40 金幣賣 +7 鐵劍。先鎖定你這一側，再確認。',
+          beforeIntro:
+            '漢斯想用 +7 鐵劍換你 40 金幣。沒有交易視窗——只有地面。',
+          beforeDropped:
+            '你的 40 金幣躺在地上。漢斯可以撿走、可以放下劍，也可以什麼都不做。',
+          groundNote: '沒有任何東西綁住漢斯。路過的任何人都能撿走。',
+          beforeTaken: '漢斯撿起你的 40 金幣，轉身就走。',
+          beforeTakenV: '沒有保留，也沒有原子性。根本沒有交易可以取消。',
+          beforeGood: '漢斯把劍放下了。兩邊各自撿起。',
+          beforeGoodV: '成功只因為他願意，沒有任何機制逼他。',
+          lockedYou: '你這一側凍結了——現在改不動。漢斯也跟著鎖定。',
+          lockedBoth: '雙方都已鎖定。確認即可封緘。',
+          inFlight:
+            '你的確認正在送往伺服器。<b>現在讓漢斯掉包看看</b>——確認會晚一步抵達。',
+          swapUnlock:
+            '漢斯解除鎖定——伺服器不允許修改已鎖定的一側——然後掉包長劍。<b>雙方封緘同時破裂。</b>',
+          swap: '漢斯掉包長劍。<b>雙方封緘同時破裂。</b>',
+          lookAgain: '再看一次數字，然後確認或取消。',
+          relocked:
+            '漢斯重新鎖定並等待。你的封緘已經沒了——先前談好的內容再也綁不住你。',
+          refused:
+            '遭拒：<b>“The offer changed — look again.”</b> 你的封緘早就破了。',
+          refusedV: (s, c) =>
+            '傳輸層：你送出 rev ' + s + '，工作階段在 rev ' + c + '。什麼都沒有移動。',
+          waiting: '漢斯還沒鎖定。你的確認先等著。',
+          committed: '雙方封緘都成立。交易完成，兩個角色都已立即存檔。',
+          committedGoodV: '你拿到自己封緘的那把 +7 鐵劍。',
+          committedBadV: '你拿到一把 +0 鐵劍——睜著眼親手封緘的那一把。',
+          cancelled: '<b>交易已取消。</b> 雙方的視窗都關上了。',
+          cancelledV: '金幣從未離開你的背包。走開只花時間，不花別的。',
+        },
+
+        'en-US': {
+          docTitle: 'Change the offer, break the seal — OpenMMO player trade',
+          titleA: 'Change the offer,',
+          titleB: 'break the seal',
+          boardAlt:
+            'Hans and Hugo trading. Before: items are dropped on the ground between them. After: a trade window with lock chips and wax seals, over a separate server lane carrying the revision check.',
+          takeawayAfter:
+            'Any offer change breaks both seals — you always confirm again with your eyes open.',
+          takeawayBefore:
+            'No trade window: you dropped the item and hoped the other player kept their half.',
+          noteAfter:
+            '<b>After</b> — a shared window, a lock, and a seal that a change destroys.',
+          noteBefore: '<b>Before</b> — master: drop it and hope.',
+          nameHans: 'HANS',
+          nameYou: 'YOU · HUGO',
+          groundLabel: 'THE GROUND',
+          groundAnyone: 'ANYONE CAN TAKE IT',
+          groundSword: '+7 IRON SWORD',
+          groundGold: '40 GOLD',
+          windowBand: 'THE TRADE WINDOW · BOTH PLAYERS SEE IT',
+          wireBand: 'ON THE WIRE · PLAYERS NEVER SEE IT',
+          itemName: 'Iron Sword',
+          enchNote: '+0 AND +7 SHARE ONE ICON',
+          purseLabel: 'Your purse',
+          chipLocked: 'LOCKED',
+          chipSealed: 'SEALED',
+          sessionRev: (n) => 'session rev ' + n,
+          btnHansSwap: 'Hans swaps the sword',
+          btnHansSwapBack: 'Hans swaps it back',
+          btnHansTake: 'Hans takes the gold',
+          btnLock: 'Lock offer',
+          btnConfirm: 'Confirm',
+          btnDrop: 'Drop your 40g',
+          btnAsk: 'Ask Hans to drop the sword',
+          btnCancel: 'Cancel trade',
+          btnReset: 'Reset',
+          afterIntro:
+            'Hans offers a +7 Iron Sword for your 40g. Lock your side, then confirm.',
+          beforeIntro:
+            'Hans wants 40g for his +7 Iron Sword. There is no trade window — only the ground.',
+          beforeDropped:
+            'Your 40g is on the ground. Hans can pick it up, drop his sword, or neither.',
+          groundNote:
+            'Nothing holds Hans to his half. Anyone walking past can take it.',
+          beforeTaken: 'Hans picks up your 40g and walks away.',
+          beforeTakenV:
+            'Nothing was reserved and nothing was atomic. There was no trade to cancel.',
+          beforeGood: 'Hans drops the sword. You both pick up.',
+          beforeGoodV: 'It worked because he chose to. Nothing made him.',
+          lockedYou:
+            'Your side is frozen — you cannot edit it now. Hans locks too.',
+          lockedBoth: 'Both sides locked. Confirm to seal it.',
+          inFlight:
+            'Your confirm is on its way. <b>Let Hans swap now</b> and watch it arrive too late.',
+          swapUnlock:
+            'Hans unlocks — the server refuses edits to a locked side — and swaps the blade. <b>Both seals break.</b>',
+          swap: 'Hans swaps the blade. <b>Both seals break.</b>',
+          lookAgain: 'Look at the number again, then confirm or cancel.',
+          relocked:
+            'Hans locks again and waits. Your seal is gone — nothing binds you to what you agreed to before.',
+          refused:
+            'Refused: <b>“The offer changed — look again.”</b> Your seal was already broken.',
+          refusedV: (s, c) =>
+            'On the wire: you sent rev ' +
+            s +
+            ', the session is at rev ' +
+            c +
+            '. Nothing moved.',
+          waiting: 'Hans has not locked yet. Your confirm waits.',
+          committed:
+            'Both seals hold. Trade committed and saved to both characters.',
+          committedGoodV: 'You received the +7 Iron Sword you sealed.',
+          committedBadV:
+            'You received a +0 Iron Sword — the one you sealed, with your eyes open.',
+          cancelled: '<b>The trade was called off.</b> The window closes for both of you.',
+          cancelledV:
+            'Your gold never left your bag. Walking away costs nothing but time.',
+        },
+      }
+
+      const reduced = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches
+      const anim = () => (reduced ? null : window.anime)
+      const el = (id) => document.getElementById(id)
+
+      const nodes = {
+        titleA: el('title-a'),
+        titleB: el('title-b'),
+        boardTitle: el('board-title'),
+        takeaway: el('takeaway'),
+        modeNote: el('mode-note'),
+        before: el('btn-before'),
+        after: el('btn-after'),
+        langKo: el('lang-ko'),
+        langZh: el('lang-zh'),
+        langEn: el('lang-en'),
+        hans: el('btn-hans'),
+        act: el('btn-act'),
+        cancel: el('btn-cancel'),
+        reset: el('btn-reset'),
+        ground: el('ground-scene'),
+        groundSword: el('ground-sword'),
+        groundPurse: el('ground-purse'),
+        groundNote: el('ground-note'),
+        nameHans: el('name-hans'),
+        nameYou: el('name-you'),
+        windowScene: el('window-scene'),
+        serverScene: el('server-scene'),
+        ench: el('ench'),
+        rev: el('rev-text'),
+        yourLock: el('your-lock'),
+        yourSeal: el('your-seal'),
+        theirLock: el('their-lock'),
+        theirSeal: el('their-seal'),
+        packet: el('packet'),
+        packetText: el('packet-text'),
+        status: el('status'),
+        statusMain: el('status-main'),
+        statusVerdict: el('status-verdict'),
+      }
+
+      const FLIGHT = reduced ? 600 : 1300
+      let lang = 'ko'
+      let S
+      let timers = []
+
+      // A missing key is a bug, not a fallback: fail loud in the console and
+      // render the key so it cannot pass review unnoticed.
+      const KEYS = Object.keys(I18N.ko)
+      Object.entries(I18N).forEach(([code, table]) => {
+        const missing = KEYS.filter((k) => !(k in table))
+        const extra = Object.keys(table).filter((k) => !KEYS.includes(k))
+        if (missing.length || extra.length) {
+          console.error('i18n key mismatch in ' + code, { missing, extra })
+        }
+      })
+
+      const dict = () => I18N[lang]
+      const t = (key, ...args) => {
+        const v = dict()[key]
+        if (v === undefined) {
+          console.error('missing i18n key: ' + lang + '.' + key)
+          return '⟨' + key + '⟩'
+        }
+        return typeof v === 'function' ? v(...args) : v
+      }
+
+      const later = (fn, ms) => {
+        const id = setTimeout(fn, ms)
+        timers.push(id)
+        return id
+      }
+
+      function setLang(next) {
+        lang = next
+        document.documentElement.lang = next === 'zh-Hant' ? 'zh-Hant' : next
+        document.documentElement.dataset.lang = next
+        document.title = t('docTitle')
+        try {
+          localStorage.setItem('trade-explainer-lang', next)
+        } catch (e) {
+          /* file:// storage may be blocked; the choice just won't persist */
+        }
+        render()
+      }
+
+      function reset(mode) {
+        timers.forEach(clearTimeout)
+        timers = []
+        const m = mode || (S && S.mode) || 'after'
+        S = {
+          mode: m,
+          enchant: 7,
+          revision: 3,
+          youLocked: false,
+          youConfirmed: false,
+          themLocked: false,
+          themConfirmed: false,
+          purse: 'held', // held | ground | taken
+          sword: 'hans', // hans | ground
+          inflight: null,
+          tone: 'idle',
+          settled: false,
+          main: [m === 'after' ? 'afterIntro' : 'beforeIntro'],
+          verdict: null,
+        }
+        nodes.packet.style.opacity = 0
+        nodes.packet.style.transform = ''
+        render()
+      }
+
+      /* ---------- one deterministic render pass ---------- */
+
+      function render() {
+        const after = S.mode === 'after'
+
+        nodes.langKo.setAttribute('aria-pressed', String(lang === 'ko'))
+        nodes.langZh.setAttribute('aria-pressed', String(lang === 'zh-Hant'))
+        nodes.langEn.setAttribute('aria-pressed', String(lang === 'en-US'))
+        nodes.before.setAttribute('aria-pressed', String(!after))
+        nodes.after.setAttribute('aria-pressed', String(after))
+
+        nodes.titleA.textContent = t('titleA')
+        nodes.titleB.textContent = t('titleB')
+        nodes.boardTitle.textContent = t('boardAlt')
+        nodes.takeaway.textContent = after
+          ? t('takeawayAfter')
+          : t('takeawayBefore')
+        nodes.modeNote.innerHTML = after ? t('noteAfter') : t('noteBefore')
+
+        document.querySelectorAll('[data-i18n]').forEach((n) => {
+          n.textContent = t(n.dataset.i18n)
+        })
+        nodes.nameHans.textContent = t('nameHans')
+        nodes.nameYou.textContent = t('nameYou')
+
+        nodes.ground.style.display = after ? 'none' : ''
+        nodes.windowScene.style.display = after ? '' : 'none'
+        nodes.serverScene.style.display = after ? '' : 'none'
+
+        nodes.groundPurse.setAttribute(
+          'transform',
+          S.purse === 'held'
+            ? 'translate(0,0)'
+            : S.purse === 'ground'
+              ? 'translate(-160,26)'
+              : 'translate(-390,26)'
+        )
+        nodes.groundPurse.style.opacity = S.purse === 'taken' ? 0.25 : 1
+        nodes.groundSword.setAttribute(
+          'transform',
+          S.sword === 'hans' ? 'translate(0,0)' : 'translate(160,10)'
+        )
+        nodes.groundNote.textContent =
+          S.purse === 'ground' ? t('groundNote') : ''
+
+        nodes.ench.textContent = '+' + S.enchant
+        nodes.ench.classList.toggle('zero', S.enchant === 0)
+        nodes.rev.textContent = t('sessionRev', S.revision)
+        nodes.yourLock.dataset.on = String(S.youLocked)
+        nodes.theirLock.dataset.on = String(S.themLocked)
+        nodes.yourSeal.dataset.on = String(S.youConfirmed)
+        nodes.theirSeal.dataset.on = String(S.themConfirmed)
+
+        nodes.hans.textContent = after
+          ? S.enchant === 7
+            ? t('btnHansSwap')
+            : t('btnHansSwapBack')
+          : t('btnHansTake')
+        nodes.hans.disabled = S.settled || (!after && S.purse !== 'ground')
+
+        nodes.act.textContent = after
+          ? S.youLocked
+            ? t('btnConfirm')
+            : t('btnLock')
+          : S.purse === 'held'
+            ? t('btnDrop')
+            : t('btnAsk')
+        nodes.act.disabled = S.settled || Boolean(S.inflight)
+
+        nodes.cancel.textContent = t('btnCancel')
+        nodes.cancel.style.display = after ? '' : 'none'
+        nodes.cancel.disabled = S.settled
+        nodes.reset.textContent = t('btnReset')
+
+        nodes.statusMain.innerHTML = S.main ? t.apply(null, S.main) : ''
+        nodes.statusVerdict.textContent = S.verdict
+          ? t.apply(null, S.verdict)
+          : ''
+        nodes.status.dataset.tone = S.tone
+      }
+
+      /* ---------- flourishes ---------- */
+
+      function pulse(node) {
+        const a = anim()
+        if (!a) return
+        a({
+          targets: node,
+          scale: [1, 1.1, 1],
+          duration: 400,
+          easing: 'easeOutQuad',
+        })
+      }
+
+      function flyPacket(text, onLand) {
+        nodes.packetText.textContent = text
+        let landed = false
+        const land = () => {
+          if (landed) return
+          landed = true
+          nodes.packet.style.opacity = 0
+          nodes.packet.style.transform = ''
+          onLand()
+        }
+        nodes.packet.style.opacity = 1
+        const a = anim()
+        if (!a) {
+          later(land, FLIGHT)
+          return
+        }
+        a({
+          targets: nodes.packet,
+          translateX: [0, -520],
+          duration: FLIGHT,
+          easing: 'linear',
+          complete: land,
+        })
+        // rAF stalls in background tabs; never strand a packet in flight.
+        later(land, FLIGHT + 600)
+      }
+
+      /* ---------- Hans ---------- */
+
+      function hansActs() {
+        if (S.settled) return
+
+        if (S.mode === 'before') {
+          S.purse = 'taken'
+          S.settled = true
+          S.tone = 'bad'
+          S.main = ['beforeTaken']
+          S.verdict = ['beforeTakenV']
+          render()
+          return
+        }
+
+        S.enchant = S.enchant === 7 ? 0 : 7
+        const wasLocked = S.themLocked
+        S.themLocked = false
+        // unlock and set_offer each call touch(): a locked side costs two.
+        S.revision += wasLocked ? 2 : 1
+        S.youConfirmed = false
+        S.themConfirmed = false
+        S.main = [wasLocked ? 'swapUnlock' : 'swap']
+        S.verdict = ['lookAgain']
+        pulse(nodes.yourSeal)
+        render()
+        later(() => {
+          if (S.settled) return
+          S.themLocked = true
+          S.main = ['relocked']
+          render()
+        }, 900)
+      }
+
+      /* ---------- you ---------- */
+
+      function youAct() {
+        if (S.settled || S.inflight) return
+
+        if (S.mode === 'before') {
+          if (S.purse === 'held') {
+            S.purse = 'ground'
+            S.main = ['beforeDropped']
+            S.verdict = null
+          } else {
+            S.sword = 'ground'
+            S.settled = true
+            S.tone = 'good'
+            S.main = ['beforeGood']
+            S.verdict = ['beforeGoodV']
+          }
+          render()
+          return
+        }
+
+        if (!S.youLocked) {
+          S.youLocked = true
+          S.main = ['lockedYou']
+          pulse(nodes.yourLock)
+          render()
+          later(() => {
+            if (S.settled) return
+            S.themLocked = true
+            S.main = ['lockedBoth']
+            render()
+          }, 550)
+          return
+        }
+
+        const sent = S.revision
+        S.inflight = { revision: sent }
+        S.main = ['inFlight']
+        S.verdict = null
+        render()
+        flyPacket('confirm rev ' + sent, () => {
+          S.inflight = null
+          if (sent !== S.revision) {
+            S.tone = 'blocked'
+            S.main = ['refused']
+            S.verdict = ['refusedV', sent, S.revision]
+          } else if (!S.themLocked) {
+            S.main = ['waiting']
+          } else {
+            S.youConfirmed = true
+            S.themConfirmed = true
+            S.settled = true
+            S.tone = S.enchant === 7 ? 'good' : 'bad'
+            S.main = ['committed']
+            S.verdict = [
+              S.enchant === 7 ? 'committedGoodV' : 'committedBadV',
+            ]
+          }
+          render()
+        })
+      }
+
+      function cancelTrade() {
+        if (S.settled) return
+        S.settled = true
+        S.tone = 'good'
+        S.youLocked = false
+        S.themLocked = false
+        S.youConfirmed = false
+        S.themConfirmed = false
+        S.main = ['cancelled']
+        S.verdict = ['cancelledV']
+        render()
+      }
+
+      nodes.before.addEventListener('click', () => reset('before'))
+      nodes.after.addEventListener('click', () => reset('after'))
+      nodes.langKo.addEventListener('click', () => setLang('ko'))
+      nodes.langZh.addEventListener('click', () => setLang('zh-Hant'))
+      nodes.langEn.addEventListener('click', () => setLang('en-US'))
+      nodes.hans.addEventListener('click', hansActs)
+      nodes.act.addEventListener('click', youAct)
+      nodes.cancel.addEventListener('click', cancelTrade)
+      nodes.reset.addEventListener('click', () => reset(S.mode))
+
+      let saved = null
+      try {
+        saved = localStorage.getItem('trade-explainer-lang')
+      } catch (e) {
+        /* ignore */
+      }
+      lang = I18N[saved] ? saved : 'ko'
+      reset('after')
+      setLang(lang)
+    </script>
+  </body>
+</html>
