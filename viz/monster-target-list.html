@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Who is on the monster's target list?</title>
+<style>
+  :root {
+    --bg: #10151d;
+    --panel: #172030;
+    --line: #2a374b;
+    --ink: #e8eef7;
+    --mute: #93a3ba;
+    --primary: #58a6ff;
+    --primary-dim: #2b6cb0;
+    --accent: #e8894a;
+    --accent-dim: #a75c2c;
+    --ok: #4ec9a5;
+    --off: #6b7a90;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    overflow: hidden;
+  }
+  html[lang="zh-Hant"] body, html[lang="ko"] body { line-height: 1.7; }
+  .wrap {
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 10px clamp(10px, 2vw, 20px) 12px;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  h1 { font-size: clamp(15px, 2.4vw, 20px); margin: 0; font-weight: 620; letter-spacing: .01em; }
+  .switches { margin-left: auto; display: flex; gap: 8px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    font: inherit; font-size: 12.5px; color: var(--mute); background: transparent;
+    border: 0; padding: 6px 11px; cursor: pointer; min-width: 62px;
+  }
+  .seg.lang button { min-width: 46px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--primary-dim); color: #fff; }
+  .seg button:focus-visible, .stage:focus-visible, .ghost:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 2px;
+  }
+  main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(230px, .95fr); gap: 10px; min-height: 0; }
+  .stage {
+    position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; min-height: 0; display: grid; grid-template-rows: minmax(0,1fr) auto;
+    padding: 6px 6px 4px; touch-action: none;
+  }
+  svg { width: 100%; height: 100%; display: block; }
+  .hint { margin: 0; padding: 2px 6px 3px; font-size: 11.5px; color: var(--mute); text-align: center; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 11px; display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 8px; min-height: 0;
+  }
+  h2 { font-size: 11px; margin: 0; color: var(--mute); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  html[lang="zh-Hant"] h2, html[lang="ko"] h2 { letter-spacing: .04em; }
+  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  li {
+    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-height: 38px;
+  }
+  li .dot { width: 11px; height: 11px; flex: 0 0 11px; transform: rotate(45deg); }
+  li .who { flex: 1; }
+  li .dist { color: var(--mute); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+  li .tag:empty { display: none; }
+  li .tag { font-size: 10.5px; padding: 2px 6px; border-radius: 999px; border: 1px solid currentColor; }
+  li.locked { border-color: var(--ok); color: var(--ok); }
+  li.locked .who, li.locked .dist { color: inherit; }
+  li.missing { border-style: dashed; color: var(--off); opacity: .85; }
+  li.missing .who { text-decoration: line-through; }
+  pre {
+    margin: 0; font-size: 11px; line-height: 1.55; color: var(--mute); white-space: pre-wrap;
+    word-break: break-word; background: #0d131c; border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 9px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  pre .add { color: var(--ok); }
+  pre .gone { color: var(--off); text-decoration: line-through; }
+  footer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  footer p { margin: 0; font-size: 13px; flex: 1; min-width: 200px; }
+  .ghost {
+    font: inherit; font-size: 12.5px; color: var(--mute); background: transparent;
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  .status { font-size: 11.5px; color: var(--mute); }
+  .status b { font-weight: 600; }
+  .npcHandle { cursor: grab; }
+  @keyframes ring { from { r: 12; opacity: .85; } to { r: 34; opacity: 0; } }
+  #hitRing.fire { animation: ring .5s ease-out; }
+  @media (prefers-reduced-motion: reduce) { #hitRing.fire { animation: none; opacity: .5; } }
+  @media (max-width: 720px) {
+    main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1.25fr) auto; }
+    .panel { grid-template-rows: auto auto auto; }
+    pre { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title"></h1>
+    <div class="switches">
+      <div class="seg" role="group" id="modeGroup">
+        <button id="beforeBtn" type="button" aria-pressed="false"></button>
+        <button id="afterBtn" type="button" aria-pressed="true"></button>
+      </div>
+      <div class="seg lang" role="group" id="langGroup">
+        <button type="button" data-lang="en-US" aria-pressed="false">EN</button>
+        <button type="button" data-lang="zh-Hant" aria-pressed="false">繁中</button>
+        <button type="button" data-lang="ko" aria-pressed="true">한국어</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage" id="stage" tabindex="0" role="group">
+      <svg id="svg" viewBox="0 0 420 300" aria-hidden="true">
+        <g id="ground"></g>
+        <circle id="chaseRing" cx="200" cy="175" r="95" fill="none" stroke="#e8894a" stroke-opacity=".38"
+                stroke-width="1.4" stroke-dasharray="7 7" />
+        <line id="lockLine" x1="0" y1="0" x2="0" y2="0" stroke="#4ec9a5" stroke-width="1.6"
+              stroke-dasharray="4 4" opacity="0" />
+        <g id="legend">
+          <rect x="0" y="4" width="172" height="96" rx="10" fill="#172030" fill-opacity=".86" />
+          <polygon points="14,14 22,18 22,26 14,30 6,26 6,18" fill="#58a6ff" />
+          <text id="npcLabel" x="28" y="26" font-size="10.5" fill="#8cc4ff"></text>
+          <polygon points="14,36 23,52 5,52" fill="#e8894a" />
+          <text id="monsterLabel" x="28" y="50" font-size="10.5" fill="#e8894a"></text>
+          <polygon points="14,58 22,62 20,72 8,72 6,62" fill="#5d6f88" />
+          <text id="humanLabel" x="28" y="70" font-size="10.5" fill="#93a3ba"></text>
+          <circle cx="14" cy="87" r="8" fill="none" stroke="#e8894a" stroke-opacity=".7"
+                  stroke-width="1.4" stroke-dasharray="4 4" />
+          <text id="chaseLabel" x="28" y="91" font-size="10.5" fill="#a7714f"></text>
+        </g>
+        <g id="human">
+          <polygon points="0,-13 11,-5 8,10 -8,10 -11,-5" fill="#5d6f88" />
+          <polygon points="0,-13 11,-5 0,-2" fill="#7688a1" />
+        </g>
+        <g id="monster">
+          <polygon points="0,-16 13,8 -13,8" fill="#e8894a" />
+          <polygon points="0,-16 13,8 0,4" fill="#a75c2c" />
+          <polygon points="-5,-3 5,-3 0,4" fill="#10151d" />
+        </g>
+        <g id="npc" class="npcHandle">
+          <circle id="hitRing" cx="0" cy="0" r="12" fill="none" stroke="#e8894a" stroke-width="2.4" opacity="0" />
+          <polygon points="0,-15 13,-7 13,7 0,15 -13,7 -13,-7" fill="#58a6ff" />
+          <polygon points="0,-15 13,-7 0,0 -13,-7" fill="#8cc4ff" />
+        </g>
+      </svg>
+      <p class="hint" id="hint"></p>
+    </section>
+
+    <aside class="panel">
+      <h2 id="listTitle"></h2>
+      <ul id="list"></ul>
+      <pre id="code"></pre>
+    </aside>
+  </main>
+
+  <footer>
+    <p id="takeaway"></p>
+    <span class="status" id="status"></span>
+    <button class="ghost" id="reset" type="button"></button>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<script>
+const T = {
+  title:      { 'en-US': "Who is on the monster's target list?", 'zh-Hant': '怪物的目標清單上有誰？', ko: '몬스터의 목표 목록에는 누가 있나?' },
+  before:     { 'en-US': 'Before', 'zh-Hant': '修正前', ko: '수정 전' },
+  after:      { 'en-US': 'After',  'zh-Hant': '修正後', ko: '수정 후' },
+  modeGroup:  { 'en-US': 'Code version', 'zh-Hant': '程式版本', ko: '코드 버전' },
+  langGroup:  { 'en-US': 'Language', 'zh-Hant': '語言', ko: '언어' },
+  stage:      { 'en-US': 'Field. Drag the NPC, or move it with the arrow keys.', 'zh-Hant': '場地。拖曳 NPC，或用方向鍵移動。', ko: '필드. NPC를 드래그하거나 방향키로 움직이세요.' },
+  hint:       { 'en-US': 'Drag the blue NPC — or press the arrow keys.', 'zh-Hant': '拖曳藍色 NPC，或按方向鍵移動。', ko: '파란 NPC를 드래그하거나 방향키를 누르세요.' },
+  listTitle:  { 'en-US': 'Target list the monster AI reads', 'zh-Hant': '怪物 AI 讀到的目標清單', ko: '몬스터 AI가 읽는 목표 목록' },
+  npc:        { 'en-US': 'NPC this agent drives', 'zh-Hant': '本 agent 駕駛的 NPC', ko: '이 agent가 조종하는 NPC' },
+  npcShort:   { 'en-US': 'NPC', 'zh-Hant': 'NPC', ko: 'NPC' },
+  human:      { 'en-US': 'Human player', 'zh-Hant': '真人玩家', ko: '사람 플레이어' },
+  humanShort: { 'en-US': 'Human', 'zh-Hant': '玩家', ko: '플레이어' },
+  monster:    { 'en-US': 'Monster the agent owns', 'zh-Hant': 'agent 自己養的怪物', ko: 'agent가 소유한 몬스터' },
+  chase:      { 'en-US': 'chase range', 'zh-Hant': '追擊範圍', ko: '추격 범위' },
+  missing:    { 'en-US': 'not sent', 'zh-Hant': '沒送來', ko: '안 보내줌' },
+  locked:     { 'en-US': 'target', 'zh-Hant': '目標', ko: '목표' },
+  farAway:    { 'en-US': 'out of range', 'zh-Hant': '範圍外', ko: '범위 밖' },
+  stIdle:     { 'en-US': 'No target — the monster idles.', 'zh-Hant': '沒有目標，怪物閒著。', ko: '목표 없음 — 몬스터가 대기 중.' },
+  stChase:    { 'en-US': 'Chasing the NPC.', 'zh-Hant': '正在追擊 NPC。', ko: 'NPC를 추격 중.' },
+  stAttack:   { 'en-US': 'Attacking the NPC.', 'zh-Hant': '正在攻擊 NPC。', ko: 'NPC를 공격 중.' },
+  stReturn:   { 'en-US': 'Lost the target — walking home.', 'zh-Hant': '失去目標，走回原點。', ko: '목표를 잃음 — 원위치로 복귀.' },
+  tkBefore:   { 'en-US': 'The server never sends you yourself, so your own monster has nobody to target.', 'zh-Hant': '伺服器不回傳自己，怪物因此鎖不到任何目標。', ko: '서버가 자기 자신은 목록에 넣어주지 않아서, 자기 몬스터가 노릴 대상이 없습니다.' },
+  tkAfter:    { 'en-US': 'Chaining self_player into the list lets the monster target its own NPC.', 'zh-Hant': '把 self_player 併進清單，怪物才鎖定得到自家 NPC。', ko: 'self_player를 목록에 이어 붙이면 몬스터가 자기 NPC를 목표로 잡습니다.' },
+  reset:      { 'en-US': 'Reset', 'zh-Hant': '重置', ko: '초기화' },
+  status:     { 'en-US': 'Monster', 'zh-Hant': '怪物', ko: '몬스터' }
+};
+
+const SPAWN = { x: 200, y: 175 };
+const HUMAN = { x: 372, y: 52 };
+const CHASE = 95, ATTACK = 30, RUN = 62, WALK = 34;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+const nav = (navigator.language || '').toLowerCase();
+let lang = nav.startsWith('en') ? 'en-US' : /^zh-(hant|tw|hk|mo)/.test(nav) ? 'zh-Hant' : 'ko';
+let mode = 'after';
+let npc = { x: 148, y: 122 };
+let mob = { x: SPAWN.x, y: SPAWN.y, angle: 0, state: 'idle', cool: 0 };
+
+const $ = id => document.getElementById(id);
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const t = k => T[k][lang];
+
+(function ground() {
+  const g = $('ground'), shades = ['#141c27', '#18212e', '#131a24', '#1a2431'];
+  let i = 0;
+  for (let x = -350; x < 770; x += 70) {
+    for (let y = -300; y < 600; y += 75) {
+      const a = `${x},${y} ${x + 70},${y} ${x},${y + 75}`;
+      const b = `${x + 70},${y} ${x + 70},${y + 75} ${x},${y + 75}`;
+      for (const pts of [a, b]) {
+        const p = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        p.setAttribute('points', pts);
+        p.setAttribute('fill', shades[i++ % shades.length]);
+        g.appendChild(p);
+      }
+    }
+  }
+})();
+
+const rowCells = [0, 1].map(() => {
+  const li = document.createElement('li');
+  const mk = cls => { const s = document.createElement('span'); s.className = cls; li.appendChild(s); return s; };
+  const cells = { li, dot: mk('dot'), who: mk('who'), dist: mk('dist'), tag: mk('tag') };
+  $('list').appendChild(li);
+  return cells;
+});
+
+function entries() {
+  const rows = [{ key: 'human', who: t('humanShort'), color: '#5d6f88', d: dist(mob, HUMAN), present: true }];
+  rows.push({ key: 'npc', who: t('npcShort'), color: '#58a6ff', d: dist(mob, npc), present: mode === 'after' });
+  return rows;
+}
+
+function pickTarget() {
+  const inRange = entries().filter(r => r.present && r.d <= CHASE).sort((a, b) => a.d - b.d);
+  return inRange.length ? inRange[0].key : null;
+}
+
+function step(dt) {
+  const key = pickTarget();
+  const tgt = key === 'npc' ? npc : key === 'human' ? HUMAN : null;
+  if (tgt) {
+    const d = dist(mob, tgt);
+    mob.angle = Math.atan2(tgt.y - mob.y, tgt.x - mob.x);
+    if (d > ATTACK) {
+      mob.state = 'chase';
+      const s = reduced.matches ? d - ATTACK : Math.min(RUN * dt, d - ATTACK);
+      mob.x += Math.cos(mob.angle) * s;
+      mob.y += Math.sin(mob.angle) * s;
+    } else {
+      mob.state = 'attack';
+      mob.cool -= dt;
+      if (mob.cool <= 0) { mob.cool = 1.2; hit(); }
+    }
+  } else {
+    const d = dist(mob, SPAWN);
+    if (d > 2) {
+      mob.state = 'return';
+      const a = Math.atan2(SPAWN.y - mob.y, SPAWN.x - mob.x);
+      const s = reduced.matches ? d : Math.min(WALK * dt, d);
+      mob.x += Math.cos(a) * s;
+      mob.y += Math.sin(a) * s;
+      mob.angle = a;
+    } else {
+      mob.state = 'idle';
+    }
+    mob.cool = 0;
+  }
+  return key;
+}
+
+function hit() {
+  const ring = $('hitRing');
+  ring.classList.remove('fire');
+  void ring.getBoundingClientRect();
+  ring.classList.add('fire');
+}
+
+function draw(key) {
+  $('npc').setAttribute('transform', `translate(${npc.x} ${npc.y})`);
+  $('human').setAttribute('transform', `translate(${HUMAN.x} ${HUMAN.y})`);
+  $('monster').setAttribute('transform',
+    `translate(${mob.x} ${mob.y}) rotate(${(mob.angle * 180) / Math.PI + 90})`);
+  $('chaseRing').setAttribute('cx', mob.x);
+  $('chaseRing').setAttribute('cy', mob.y);
+
+  const line = $('lockLine');
+  if (key === 'npc') {
+    line.setAttribute('x1', mob.x); line.setAttribute('y1', mob.y);
+    line.setAttribute('x2', npc.x); line.setAttribute('y2', npc.y);
+    line.setAttribute('opacity', '.8');
+  } else {
+    line.setAttribute('opacity', '0');
+  }
+
+  const st = mob.state === 'attack' ? 'stAttack' : mob.state === 'chase' ? 'stChase'
+    : mob.state === 'return' ? 'stReturn' : 'stIdle';
+  $('status').innerHTML = '<b>' + t('status') + ':</b> ' + t(st);
+
+  entries().forEach((r, i) => {
+    const row = rowCells[i];
+    const locked = r.present && r.key === key;
+    row.li.className = !r.present ? 'missing' : locked ? 'locked' : '';
+    row.dot.style.background = r.present ? r.color : '#3a4557';
+    row.who.textContent = r.who;
+    row.dist.textContent = Math.round(r.d) + ' m';
+    row.tag.textContent = !r.present ? t('missing')
+      : locked ? t('locked') : r.d > CHASE ? t('farAway') : '';
+  });
+}
+
+function renderStatic() {
+  document.documentElement.lang = lang;
+  $('title').textContent = t('title');
+  $('beforeBtn').textContent = t('before');
+  $('afterBtn').textContent = t('after');
+  $('beforeBtn').setAttribute('aria-pressed', String(mode === 'before'));
+  $('afterBtn').setAttribute('aria-pressed', String(mode === 'after'));
+  $('modeGroup').setAttribute('aria-label', t('modeGroup'));
+  $('langGroup').setAttribute('aria-label', t('langGroup'));
+  $('stage').setAttribute('aria-label', t('stage'));
+  $('hint').textContent = t('hint');
+  $('listTitle').textContent = t('listTitle');
+  $('npcLabel').textContent = t('npc');
+  $('humanLabel').textContent = t('human');
+  $('monsterLabel').textContent = t('monster');
+  $('chaseLabel').textContent = t('chase');
+  $('takeaway').textContent = mode === 'after' ? t('tkAfter') : t('tkBefore');
+  $('reset').textContent = t('reset');
+  $('code').innerHTML = mode === 'after'
+    ? 'nearby_players.values()\n  <span class="add">.chain(self_player)</span>'
+    : 'nearby_players.values()\n  <span class="gone">.chain(self_player)</span>';
+  document.querySelectorAll('#langGroup button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  draw(step(dt));
+  requestAnimationFrame(loop);
+}
+
+function setMode(next) {
+  if (next === mode) return;
+  mode = next;
+  renderStatic();
+  if (window.anime && !reduced.matches) {
+    anime.remove('#list li');
+    anime({ targets: '#list li', translateX: [10, 0], opacity: [0.35, 1], duration: 320, easing: 'easeOutQuad' });
+  }
+}
+
+$('beforeBtn').addEventListener('click', () => setMode('before'));
+$('afterBtn').addEventListener('click', () => setMode('after'));
+document.querySelectorAll('#langGroup button').forEach(b =>
+  b.addEventListener('click', () => { lang = b.dataset.lang; renderStatic(); }));
+$('reset').addEventListener('click', () => {
+  npc = { x: 148, y: 122 };
+  mob = { x: SPAWN.x, y: SPAWN.y, angle: 0, state: 'idle', cool: 0 };
+});
+
+const svg = $('svg');
+const toLocal = e => {
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+};
+const clamp = p => ({ x: Math.max(18, Math.min(402, p.x)), y: Math.max(20, Math.min(272, p.y)) });
+let dragging = false;
+svg.addEventListener('pointerdown', e => {
+  const p = toLocal(e);
+  if (dist(p, npc) > 34) return;
+  dragging = true;
+  svg.setPointerCapture(e.pointerId);
+  $('stage').focus();
+});
+svg.addEventListener('pointermove', e => { if (dragging) npc = clamp(toLocal(e)); });
+svg.addEventListener('pointerup', () => { dragging = false; });
+svg.addEventListener('pointercancel', () => { dragging = false; });
+$('stage').addEventListener('keydown', e => {
+  const step = e.shiftKey ? 24 : 10;
+  const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+  const m = moves[e.key];
+  if (!m) return;
+  e.preventDefault();
+  npc = clamp({ x: npc.x + m[0], y: npc.y + m[1] });
+});
+
+renderStatic();
+draw(pickTarget());
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
