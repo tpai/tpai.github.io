@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ko-KR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>one walker for every walk</title>
+<style>
+  :root{
+    --ink:#101426; --rule:#2A3352; --edge:#39456B;
+    --paper:#E8EBF6; --steel:#8FA0BF; --brass:#F0A93C;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden}
+  body{
+    background:var(--ink); color:var(--paper); font-family:var(--sans);
+    display:flex; flex-direction:column;
+    padding:clamp(10px,1.6vmin,20px) clamp(12px,2.2vmin,28px);
+    gap:clamp(6px,1vmin,12px);
+    background-image:
+      linear-gradient(transparent 95%, rgba(42,51,82,.5) 95%),
+      linear-gradient(90deg, transparent 95%, rgba(42,51,82,.5) 95%);
+    background-size:34px 34px;
+  }
+  html[lang="zh-Hant"] body, html[lang="ko-KR"] body{line-height:1.7}
+  /* the mono/tracked treatment is a Latin device; CJK and Hangul take the body face */
+  html:not([lang="en-US"]) .cap{font-family:var(--sans); letter-spacing:.02em}
+  html:not([lang="en-US"]) #replay{font-family:var(--sans)}
+
+  header{display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap}
+  .eyebrow{font-family:var(--mono); font-size:clamp(9px,1.1vmin,11px); letter-spacing:.14em;
+    text-transform:uppercase; color:var(--steel); margin:0 0 3px}
+  h1{font-family:var(--mono); font-weight:500; letter-spacing:-.02em;
+    font-size:clamp(19px,3.2vmin,31px); line-height:1.05; margin:0; text-transform:lowercase}
+  h1 .hi{color:var(--brass)}
+  .take{margin:5px 0 0; color:var(--steel); font-size:clamp(11.5px,1.55vmin,15px); max-width:62ch}
+
+  .langs{display:flex; gap:4px; flex:0 0 auto}
+  button{font-family:inherit; cursor:pointer; color:var(--steel); background:transparent;
+    border:1px solid var(--rule); border-radius:2px; padding:5px 10px;
+    font-size:clamp(10.5px,1.35vmin,13px); line-height:1.2;
+    transition:color .15s,border-color .15s,background .15s}
+  button:hover{color:var(--paper); border-color:var(--edge)}
+  button[aria-pressed="true"]{color:var(--ink); background:var(--paper); border-color:var(--paper)}
+  button:focus-visible{outline:2px solid var(--brass); outline-offset:2px}
+  .langs button{font-family:var(--mono); padding:4px 8px}
+
+  .bar{display:flex; align-items:center; gap:clamp(8px,1.6vmin,20px); flex-wrap:wrap;
+    border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); padding:7px 0}
+  .grp{display:flex; align-items:center; gap:6px}
+  .cap{font-family:var(--mono); font-size:clamp(9px,1.05vmin,10.5px); letter-spacing:.12em;
+    text-transform:uppercase; color:var(--steel); opacity:.7}
+  .seg{display:flex}
+  .seg button{border-radius:0; margin-left:-1px}
+  .seg button:first-child{margin-left:0; border-radius:2px 0 0 2px}
+  .seg button:last-child{border-radius:0 2px 2px 0}
+  #replay{margin-left:auto; font-family:var(--mono)}
+
+  .stage{flex:1 1 auto; min-height:0; min-width:0; overflow:hidden}
+  svg{width:100%; height:100%; display:block; font-family:var(--mono)}
+  svg .sans{font-family:var(--sans)}
+
+  footer{min-height:3em; display:flex; flex-direction:column; gap:2px}
+  .note{margin:0; font-size:clamp(11px,1.5vmin,14px); color:var(--paper)}
+  .foot{margin:0; font-size:clamp(10px,1.25vmin,12px); color:#7C8BB2}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">agent-client / src / driver</p>
+      <h1 id="h1"></h1>
+      <p class="take" id="take"></p>
+    </div>
+    <div class="langs" role="group" aria-label="Language / 語言 / 언어" id="langGrp">
+      <button type="button" data-loc="en-US" aria-pressed="false">EN</button>
+      <button type="button" data-loc="zh-Hant" aria-pressed="false">繁中</button>
+      <button type="button" data-loc="ko-KR" aria-pressed="true">한국어</button>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="grp">
+      <span class="cap" id="capView"></span>
+      <div class="seg" role="group" id="modeGrp">
+        <button type="button" data-mode="before" aria-pressed="false"></button>
+        <button type="button" data-mode="after" aria-pressed="true"></button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="cap" id="capObs"></span>
+      <div class="seg" role="group" id="scnGrp">
+        <button type="button" data-scn="correction" aria-pressed="true"></button>
+        <button type="button" data-scn="door" aria-pressed="false"></button>
+        <button type="button" data-scn="sealed" aria-pressed="false"></button>
+      </div>
+    </div>
+    <button type="button" id="replay"></button>
+  </div>
+
+  <div class="stage" id="stage" aria-hidden="true"></div>
+  <p class="sr" id="live" role="status" aria-live="polite"></p>
+
+  <footer>
+    <p class="note" id="note"></p>
+    <p class="foot" id="foot"></p>
+  </footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<script>
+/* ---------------------------------------------------------------- copy */
+const COPY = {
+  'en-US':{
+    title_a:'one', title_b:'walker for every walk',
+    take_before:'Two walk loops ran side by side. Each one had a fix the other lacked.',
+    take_after:'Both walks now run the same loop, so both get all three fixes.',
+    cap_view:'View', cap_obs:'Obstacle',
+    before:'Before', after:'After', replay:'Replay',
+    sc_correction:'Server pushback', sc_door:'Shut door', sc_sealed:'No route out',
+    lane0:'walk to a place', lane1:'chase a monster',
+    sub0:'walks to a fixed spot', sub1:'walks to a moving target',
+    subM:'one loop, per-walk rows',
+    chip1:'reads the pushback', chip2:'opens a surface door', chip3:'steps with no route',
+    server:'server', steps:'steps sent',
+    out_arrived:'Arrived', out_repathed:'Arrived · repathed', out_timeout:'Time ran out',
+    out_stuck:'Stuck at the door', out_frozen:'Frozen · nothing sent', out_freed:'Freed by the server',
+    obs_correction:'server disagrees', obs_door:'door', obs_sealed:'sealed in',
+    noroute:'A* — no route', retry:'asks again',
+    note_correction_before:'Only execute_move reads the pushback. The chase re-walks the refused route until its time is gone.',
+    note_correction_after:'Both walks re-path on the pushback and go around it.',
+    note_door_before:'Above ground the chase never tries the door — it jams against it.',
+    note_door_after:'Either walk unlatches the door and carries on.',
+    note_sealed_before:'execute_move returns Blocked without sending a step, so the server never learns it is stuck.',
+    note_sealed_after:'No route still sends one step, so the server can see it and free it.',
+    foot_sealed:'Underground nothing is nudged — down there a missing route really is a wall.',
+    say:'{lane}: {out}'
+  },
+  'zh-Hant':{
+    title_a:'一個', title_b:'walker 走所有的路',
+    take_before:'兩個走路迴圈各走各的，各自缺了對方才有的修正。',
+    take_after:'兩種走路共用同一個迴圈，三個修正一次到齊。',
+    cap_view:'版本', cap_obs:'阻礙',
+    before:'改動前', after:'改動後', replay:'重播',
+    sc_correction:'伺服器推回', sc_door:'關著的門', sc_sealed:'走不出去',
+    lane0:'走到定點', lane1:'追怪物',
+    sub0:'目標不會動', sub1:'目標會跑',
+    subM:'同一迴圈，不同參數',
+    chip1:'讀得到推回', chip2:'地面上會開門', chip3:'沒路也踏一步',
+    server:'伺服器', steps:'已送出步數',
+    out_arrived:'抵達', out_repathed:'重算後抵達', out_timeout:'時間耗盡',
+    out_stuck:'卡在門前', out_frozen:'凍住·什麼都沒送', out_freed:'被伺服器救出',
+    obs_correction:'伺服器不同意', obs_door:'門', obs_sealed:'被封死',
+    noroute:'A*：找不到路', retry:'再問一次',
+    note_correction_before:'只有 execute_move 會讀推回；追擊會一直重走那條被拒絕的路，直到時間用完。',
+    note_correction_after:'兩邊都會在被推回之後重算路線，繞過去。',
+    note_door_before:'在地面上，追擊根本不會去開門，只會一直撞在門上。',
+    note_door_after:'兩種走路都會把門打開，然後繼續走。',
+    note_sealed_before:'execute_move 直接回 Blocked，一個封包都沒送，伺服器永遠不知道它卡住了。',
+    note_sealed_after:'沒路也會送出一步，伺服器看得到，才救得了。',
+    foot_sealed:'在地下不會硬推那一步 —— 那裡沒路就真的是牆。',
+    say:'{lane}：{out}'
+  },
+  'ko-KR':{
+    title_a:'하나의', title_b:'walker가 모든 길을 걷는다',
+    take_before:'두 walk 루프가 따로 돌았고, 각자 상대에게만 있던 수정이 빠져 있었다.',
+    take_after:'이제 두 walk가 같은 루프를 쓰므로, 세 가지 수정이 모두 적용된다.',
+    cap_view:'버전', cap_obs:'장애물',
+    before:'변경 전', after:'변경 후', replay:'다시 재생',
+    sc_correction:'서버 되돌림', sc_door:'닫힌 문', sc_sealed:'나갈 길 없음',
+    lane0:'지점으로 이동', lane1:'몬스터 추격',
+    sub0:'목표가 고정돼 있음', sub1:'목표가 움직임',
+    subM:'루프는 하나, 설정만 다름',
+    chip1:'되돌림을 읽음', chip2:'지상에서 문을 엶', chip3:'길이 없어도 한 걸음',
+    server:'서버', steps:'보낸 걸음 수',
+    out_arrived:'도착', out_repathed:'경로 재계산 후 도착', out_timeout:'시간 초과',
+    out_stuck:'문 앞에서 멈춤', out_frozen:'멈춤 · 아무것도 안 보냄', out_freed:'서버가 빼냄',
+    obs_correction:'서버가 거부', obs_door:'문', obs_sealed:'갇힘',
+    noroute:'A* — 경로 없음', retry:'다시 요청',
+    note_correction_before:'execute_move만 되돌림을 읽는다. 추격은 거부된 경로를 시간이 다 될 때까지 다시 걷는다.',
+    note_correction_after:'두 walk 모두 되돌림에서 경로를 다시 잡고 돌아간다.',
+    note_door_before:'지상에서 추격은 문을 열어 볼 생각조차 없이 계속 부딪힌다.',
+    note_door_after:'어느 쪽 walk든 문을 열고 계속 간다.',
+    note_sealed_before:'execute_move는 걸음을 하나도 보내지 않고 Blocked를 반환해서, 서버는 갇힌 걸 끝내 알지 못한다.',
+    note_sealed_after:'길이 없어도 한 걸음은 보내므로, 서버가 보고 빼낼 수 있다.',
+    foot_sealed:'지하에서는 한 걸음도 밀지 않는다 — 거기서 경로가 없다는 건 정말 벽이라는 뜻이다.',
+    say:'{lane}: {out}'
+  }
+};
+const state = { locale:'ko-KR', mode:'after', scenario:'correction' };
+const T = k => COPY[state.locale][k];
+
+/* ------------------------------------------------------- palette + geom */
+const C = { slab:'#1A2038', rule:'#2A3352', edge:'#39456B', paper:'#E8EBF6',
+            steel:'#8FA0BF', brass:'#F0A93C', iris:'#8E86FF', sky:'#4FC3D9',
+            mint:'#46D39A', clay:'#E2604A', wall:'#4A5680' };
+const ACC = [C.iris, C.sky];
+
+const WIDE = {
+  vb:[0,0,900,372],
+  plates:{ before:[{x:6,y:48,w:196,h:118},{x:6,y:222,w:196,h:118}], after:[{x:6,y:48,w:196,h:292}] },
+  lanes:[ {hy:34, x:214,y:62, w:536,h:96}, {hy:208, x:214,y:236,w:536,h:96} ],
+  server:{x:764,y:62,w:128,h:270},
+  ports:[{x:782,y:110},{x:782,y:284}],
+  countAt:[{x:802,y:115},{x:802,y:289}],
+  srvLabel:{x:828,y:190,anchor:'middle'}, srvSub:{x:828,y:206,anchor:'middle'},
+  fs:{title:14, sub:10, chip:10, lane:13, tag:11, out:12, tiny:9.5, count:15}
+};
+const TALL = {
+  vb:[0,0,420,500],
+  plates:{ before:[{x:4,y:4,w:204,h:116},{x:212,y:4,w:204,h:116}], after:[{x:4,y:4,w:412,h:116}] },
+  lanes:[ {hy:150, x:4,y:176,w:412,h:80}, {hy:300, x:4,y:326,w:412,h:80} ],
+  server:{x:4,y:432,w:412,h:64},
+  ports:[{x:170,y:464},{x:300,y:464}],
+  countAt:[{x:188,y:469},{x:318,y:469}],
+  srvLabel:{x:18,y:458,anchor:'start'}, srvSub:{x:18,y:474,anchor:'start'},
+  fs:{title:14, sub:10, chip:10, lane:12.5, tag:11, out:12, tiny:9.5, count:15}
+};
+let L = WIDE;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Set while re-labelling: the scene is rebuilt straight into the state it was
+   already showing, so a language switch never replays the run. */
+let JUMP = false;
+const STATIC = () => REDUCED || !window.anime || JUMP;
+
+/* --------------------------------------------------------- tween engine */
+const $ = id => document.getElementById(id);
+function paint(el){
+  const s = el._st; if(!s) return;
+  el.style.transform = `translate(${s.x}px,${s.y}px) rotate(${s.r}deg) scale(${s.k})`;
+  el.style.opacity = s.o;
+}
+function st(el, init){ if(!el) return el; el._st = Object.assign({x:0,y:0,r:0,o:1,k:1}, init||{}); paint(el); return el; }
+function tween(el, to, dur, ease){
+  return new Promise(res=>{
+    if(!el){ res(); return; }
+    if(!el._st) st(el);
+    if(STATIC()){ Object.assign(el._st,to); paint(el); res(); return; }
+    anime({targets:el._st, ...to, duration:dur, easing:ease||'easeInOutSine',
+           update:()=>paint(el), complete:()=>res()});
+  });
+}
+const wait = ms => new Promise(r=>setTimeout(r, STATIC()?0:ms));
+
+/* -------------------------------------------------------------- drawing */
+function ground(x,y,w,h){
+  let out = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${C.slab}"/>`;
+  const b = 34;
+  for(let i=0, gx=x; gx<x+w-2; i++, gx+=b){
+    const gw = Math.min(b, x+w-gx);
+    out += `<polygon points="${gx},${y+h} ${gx+gw/2},${y} ${gx+gw},${y+h}" fill="${C.rule}" opacity="${i%2?.5:.26}"/>`;
+  }
+  return out + `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${C.rule}"/>`;
+}
+const walkerShape = () =>
+  `<polygon points="0,-11 9,-6 9,6 0,11 -9,6 -9,-6" fill="${C.brass}"/>`
+  + `<polygon points="0,-11 9,-6 9,6 0,11" fill="#000" opacity=".22"/>`
+  + `<polygon points="9,-4 16,0 9,4" fill="${C.brass}" opacity=".75"/>`;
+const flagShape = a =>
+  `<line x1="0" y1="-14" x2="0" y2="14" stroke="${a}" stroke-width="2"/>`
+  + `<polygon points="1,-14 17,-8 1,-2" fill="${a}"/>`;
+const monsterShape = () =>
+  `<polygon points="-12,10 -8,-8 8,-8 12,10" fill="${C.edge}"/>`
+  + `<polygon points="-8,-8 8,-8 12,10 2,10" fill="#000" opacity=".2"/>`
+  + `<rect x="-6" y="-4" width="4" height="4" fill="${C.brass}"/>`
+  + `<rect x="2" y="-4" width="4" height="4" fill="${C.brass}"/>`;
+
+function geo(i){
+  const l = L.lanes[i], cy = l.y + l.h/2;
+  return { l, cy, start:l.x+30, goal:l.x+l.w-36,
+           zone:[l.x+l.w*0.50, l.x+l.w*0.62], door:l.x+l.w*0.60, wall:l.x+l.w*0.17 };
+}
+function obstacle(i){
+  const g = geo(i), l = g.l, s = state.scenario;
+  if(s==='correction'){
+    const [a,b] = g.zone;
+    return `<rect x="${a}" y="${l.y+1}" width="${b-a}" height="${l.h-2}" fill="url(#hatch)"/>`
+      + `<line x1="${a}" y1="${l.y}" x2="${a}" y2="${l.y+l.h}" stroke="${C.clay}" stroke-width="1.5" opacity=".8"/>`
+      + `<text class="sans" x="${(a+b)/2}" y="${l.y+l.h-6}" text-anchor="middle" font-size="${L.fs.tiny}" fill="${C.clay}">${T('obs_correction')}</text>`;
+  }
+  if(s==='door'){
+    const x = g.door, gap = 26, top = g.cy-gap/2, bot = g.cy+gap/2;
+    return `<rect x="${x-5}" y="${l.y+1}" width="10" height="${top-l.y-1}" fill="${C.wall}"/>`
+      + `<rect x="${x-5}" y="${bot}" width="10" height="${l.y+l.h-bot-1}" fill="${C.wall}"/>`
+      + `<g id="dt-${i}" style="transform-box:fill-box;transform-origin:center top"><rect x="${x-3}" y="${top}" width="6" height="${gap/2}" fill="${C.brass}" opacity=".85"/></g>`
+      + `<g id="db-${i}" style="transform-box:fill-box;transform-origin:center bottom"><rect x="${x-3}" y="${g.cy}" width="6" height="${gap/2}" fill="${C.brass}" opacity=".85"/></g>`
+      + `<text class="sans" x="${x}" y="${l.y+l.h-6}" text-anchor="middle" font-size="${L.fs.tiny}" fill="${C.steel}">${T('obs_door')}</text>`;
+  }
+  const x = g.wall;
+  return `<rect x="${x-5}" y="${l.y+1}" width="10" height="${l.h-2}" fill="${C.wall}"/>`
+    + `<line x1="${x}" y1="${l.y+1}" x2="${x}" y2="${l.y+l.h-1}" stroke="${C.clay}" stroke-width="1" opacity=".55"/>`
+    + `<text class="sans" x="${x+12}" y="${l.y+l.h-6}" font-size="${L.fs.tiny}" fill="${C.steel}">${T('obs_sealed')}</text>`;
+}
+function routeD(i, arc){
+  const g = geo(i);
+  if(!arc) return `M ${g.start} ${g.cy} L ${g.goal} ${g.cy}`;
+  const [a,b] = g.zone, up = g.l.y - 16;
+  return `M ${g.start} ${g.cy} L ${a-30} ${g.cy} L ${a-14} ${up} L ${b+14} ${up} L ${b+30} ${g.cy} L ${g.goal} ${g.cy}`;
+}
+function lane(i){
+  const g = geo(i), l = g.l, a = ACC[i];
+  const drv = state.mode==='before' ? (i?'chase_target':'execute_move') : 'walk::walk';
+  const noRoute = state.scenario==='sealed';
+  let s = '<g>';
+  s += `<text class="sans" x="${l.x+2}" y="${l.hy}" font-size="${L.fs.lane}" fill="${C.paper}">${T('lane'+i)}</text>`;
+  s += `<text x="${l.x+2}" y="${l.hy+14}" font-size="${L.fs.tag}" fill="${a}">${drv}</text>`;
+  s += `<text class="sans" id="out-${i}" x="${l.x+l.w-2}" y="${l.hy}" text-anchor="end" font-size="${L.fs.out}" fill="${C.steel}" opacity="0"></text>`;
+  s += ground(l.x,l.y,l.w,l.h);
+  s += `<path id="rt-${i}" d="${routeD(i,false)}" fill="none" stroke="${a}" stroke-width="1.6" stroke-dasharray="5 6" opacity="${noRoute?0:.75}"/>`;
+  s += obstacle(i);
+  s += `<g transform="translate(${g.goal},${g.cy})">${i?monsterShape():flagShape(a)}</g>`;
+  s += `<text class="sans" x="${l.x+l.w-4}" y="${l.y-5}" text-anchor="end" font-size="${L.fs.tiny}" fill="${C.clay}" opacity="${noRoute?1:0}">${T('noroute')}</text>`;
+  s += `<text class="sans" id="rty-${i}" x="${l.x+2}" y="${l.y+l.h+12}" font-size="${L.fs.tiny}" fill="${C.steel}" opacity="0"></text>`;
+  s += `<g id="bolt-${i}" opacity="0"><polyline points="0,-9 5,-2 0,2 5,9" fill="none" stroke="${C.clay}" stroke-width="2.2"/></g>`;
+  for(let p=0;p<4;p++) s += `<g id="pk-${i}-${p}" opacity="0"><rect x="-3.5" y="-3.5" width="7" height="7" fill="${a}" transform="rotate(45)"/></g>`;
+  s += `<g id="wk-${i}" style="transform-box:fill-box;transform-origin:50% 50%">${walkerShape()}</g>`;
+  return s + '</g>';
+}
+function plate(r, kind){
+  const merged = kind==='m';
+  const a = merged ? C.iris : ACC[kind];
+  const title = merged ? 'walk::walk' : (kind ? 'chase_target' : 'execute_move');
+  const on = merged ? [1,1,1] : (kind ? [0,0,1] : [1,1,0]);
+  const hot = {correction:0, door:1, sealed:2}[state.scenario];
+  let s = `<g id="pl-${merged?'m':kind}">`;
+  s += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${C.slab}" stroke="${a}" stroke-opacity=".5"/>`;
+  s += `<polygon points="${r.x},${r.y} ${r.x+11},${r.y} ${r.x},${r.y+11}" fill="${a}" opacity=".55"/>`;
+  s += `<text x="${r.x+14}" y="${r.y+24}" font-size="${L.fs.title}" fill="${a}">${title}</text>`;
+  s += merged
+    ? `<text x="${r.x+14}" y="${r.y+38}" font-size="${L.fs.sub}" fill="${C.steel}"><tspan fill="${C.iris}">execute_move</tspan> + <tspan fill="${C.sky}">chase_target</tspan></text>`
+    : `<text class="sans" x="${r.x+14}" y="${r.y+38}" font-size="${L.fs.sub}" fill="${C.steel}">${T('sub'+kind)}</text>`;
+  for(let c=0;c<3;c++){
+    const y = r.y+56+c*18, ok = on[c];
+    s += `<g id="ch-${merged?'m':kind}-${c}" opacity="${c===hot?1:.34}" style="transform-box:fill-box;transform-origin:0% 50%">`
+       + `<text x="${r.x+14}" y="${y}" font-size="${L.fs.chip}" fill="${ok?C.mint:C.clay}">${ok?'✓':'✗'}</text>`
+       + `<text class="sans" x="${r.x+28}" y="${y}" font-size="${L.fs.chip}" fill="${C.paper}" opacity=".9">${T('chip'+(c+1))}</text></g>`;
+  }
+  if(merged && r.h>=150){
+    s += `<line x1="${r.x+14}" y1="${r.y+130}" x2="${r.x+r.w-14}" y2="${r.y+130}" stroke="${C.rule}"/>`;
+    s += `<text class="sans" x="${r.x+14}" y="${r.y+150}" font-size="${L.fs.sub}" fill="${C.steel}">${T('subM')}</text>`;
+    s += `<text x="${r.x+14}" y="${r.y+188}" font-size="${L.fs.chip}" fill="${C.iris}">WalkTo::Place</text>`;
+    s += `<text x="${r.x+14}" y="${r.y+224}" font-size="${L.fs.chip}" fill="${C.sky}">WalkTo::Monster</text>`;
+  }
+  return s + '</g>';
+}
+function server(){
+  const r = L.server;
+  let s = `<g><polygon points="${r.x},${r.y} ${r.x+r.w-12},${r.y} ${r.x+r.w},${r.y+12} ${r.x+r.w},${r.y+r.h} ${r.x},${r.y+r.h}" fill="${C.slab}" stroke="${C.rule}"/>`;
+  s += `<text class="sans" x="${L.srvLabel.x}" y="${L.srvLabel.y}" text-anchor="${L.srvLabel.anchor}" font-size="${L.fs.tiny+1.5}" fill="${C.steel}">${T('server')}</text>`;
+  s += `<text class="sans" x="${L.srvSub.x}" y="${L.srvSub.y}" text-anchor="${L.srvSub.anchor}" font-size="${L.fs.tiny}" fill="${C.edge}">${T('steps')}</text>`;
+  for(let i=0;i<2;i++){
+    const p = L.ports[i], c = L.countAt[i];
+    s += `<rect x="${p.x-8}" y="${p.y-8}" width="16" height="16" fill="none" stroke="${ACC[i]}" stroke-opacity=".85"/>`;
+    s += `<text id="cnt-${i}" x="${c.x}" y="${c.y}" font-size="${L.fs.count}" fill="${C.steel}">0</text>`;
+  }
+  return s + '</g>';
+}
+function scene(){
+  const ps = L.plates[state.mode];
+  const plates = state.mode==='before' ? plate(ps[0],0)+plate(ps[1],1) : plate(ps[0],'m');
+  return `<svg viewBox="${L.vb.join(' ')}" preserveAspectRatio="xMidYMid meet" role="img">
+    <defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="${C.clay}" opacity=".07"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="${C.clay}" stroke-width="2" opacity=".3"/>
+    </pattern></defs>
+    ${plates}${lane(0)}${lane(1)}${server()}</svg>`;
+}
+
+/* ------------------------------------------------------------ sequences */
+let runId = 0;
+const counts = [0,0], pkti = [0,0];
+let said = [];
+function say(i, out){
+  said[i] = T('say').replace('{lane}', T('lane'+i)).replace('{out}', out);
+  $('live').textContent = said.filter(Boolean).join(' — ');
+}
+function bump(i){
+  counts[i]++;
+  const t = $('cnt-'+i);
+  if(t){ t.textContent = counts[i]; t.setAttribute('fill', C.paper); }
+}
+function firePacket(i, from, id){
+  if(id!==runId) return;
+  const el = $(`pk-${i}-${pkti[i]++%4}`); if(!el) return;
+  st(el,{x:from.x, y:from.y, o:1});
+  const p = L.ports[i];
+  tween(el,{x:p.x, y:p.y, o:.1}, 460,'easeInQuad').then(()=>{
+    if(id!==runId) return;
+    el._st.o = 0; paint(el); bump(i);
+  });
+}
+async function step(i, toX, packets, y, id){
+  const w = $('wk-'+i), g = geo(i), ty = (y===undefined ? g.cy : y);
+  const from = w._st.x, dist = Math.abs(toX-from), dur = Math.max(320, dist*7);
+  for(let p=0;p<packets;p++){
+    const at = {x: from+(toX-from)*((p+.5)/packets), y: ty};
+    if(STATIC()) firePacket(i, at, id);
+    else setTimeout(()=>firePacket(i, at, id), dur*(p+.4)/packets);
+  }
+  await tween(w,{x:toX, y:ty}, dur,'easeInOutQuad');
+}
+async function bolt(i, color, toX){
+  const b = $('bolt-'+i), p = L.ports[i], g = geo(i);
+  b.querySelector('polyline').setAttribute('stroke', color);
+  st(b,{x:p.x, y:p.y, o:1});
+  await tween(b,{x:toX, y:g.cy}, 380,'easeInQuad');
+  await tween(b,{o:0}, 140,'linear');
+}
+async function pushback(i){
+  const w = $('wk-'+i), g = geo(i);
+  await bolt(i, C.clay, w._st.x);
+  await tween(w,{k:1.18},110,'easeOutQuad');
+  await Promise.all([tween(w,{k:1},160), tween(w,{x:g.start, y:g.cy}, 420,'easeInOutQuad')]);
+}
+async function jam(i){
+  const w = $('wk-'+i);
+  await tween(w,{x:w._st.x+5},90,'easeOutQuad');
+  await tween(w,{x:w._st.x-5},260,'easeOutQuad');
+}
+async function openDoor(i, id){
+  const g = geo(i);
+  firePacket(i,{x:g.door-20, y:g.cy}, id);
+  await Promise.all([tween($('dt-'+i),{r:-78},520,'easeOutBack'), tween($('db-'+i),{r:78},520,'easeOutBack')]);
+}
+function outcome(i, key, ok){
+  const t = $('out-'+i);
+  t.textContent = (ok?'✓ ':'✗ ') + T('out_'+key);
+  t.setAttribute('fill', ok?C.mint:C.clay);
+  say(i, T('out_'+key));
+  return tween(t,{o:1},280,'easeOutQuad');
+}
+async function retryTick(i,k){
+  const t = $('rty-'+i), pl = $('pl-0');
+  t.textContent = T('retry')+' ×'+k;
+  await tween(t,{o:1},160);
+  await tween(pl,{o:.45},130);
+  await tween(pl,{o:1},200);
+  await wait(140);
+}
+const ROUTINE = {
+  async repath(i, id){
+    const g = geo(i);
+    await step(i, g.zone[0]-24, 2, undefined, id);
+    await pushback(i);
+    const rt = $('rt-'+i);
+    rt.setAttribute('d', routeD(i,true));
+    await tween(rt,{o:.25},90); await tween(rt,{o:.85},220);
+    await step(i, g.zone[0]-14, 1, g.l.y-16, id);
+    await step(i, g.zone[1]+14, 1, g.l.y-16, id);
+    await step(i, g.goal-32, 2, undefined, id);
+    await outcome(i,'repathed',true);
+  },
+  async grind(i, id){
+    const g = geo(i);
+    for(let k=0;k<3;k++){
+      if(id!==runId) return;
+      await step(i, g.zone[0]-24, 1, undefined, id);
+      await pushback(i);
+    }
+    await outcome(i,'timeout',false);
+  },
+  async opens(i, id){
+    const g = geo(i);
+    await step(i, g.door-26, 2, undefined, id);
+    await openDoor(i, id);
+    await step(i, g.goal-32, 2, undefined, id);
+    await outcome(i,'arrived',true);
+  },
+  async jams(i, id){
+    const g = geo(i);
+    await step(i, g.door-28, 2, undefined, id);
+    await jam(i); await jam(i); await jam(i);
+    await outcome(i,'stuck',false);
+  },
+  async frozen(i, id){
+    for(let k=1;k<=3;k++){ if(id!==runId) return; await retryTick(i,k); }
+    await outcome(i,'frozen',false);
+  },
+  async nudge(i, id){
+    const g = geo(i);
+    await step(i, g.wall-18, 1, undefined, id);
+    await bolt(i, C.mint, g.wall-18);
+    await tween($('wk-'+i),{x:g.wall+42},420,'easeOutQuad');
+    await outcome(i,'freed',true);
+  }
+};
+const PLAN = {
+  correction:{ before:['repath','grind'], after:['repath','repath'] },
+  door:      { before:['opens','jams'],   after:['opens','opens']   },
+  sealed:    { before:['frozen','nudge'], after:['nudge','nudge']   }
+};
+async function play(){
+  const id = ++runId;
+  counts[0]=counts[1]=0; pkti[0]=pkti[1]=0; said=[];
+  $('live').textContent = '';
+  for(let i=0;i<2;i++){
+    const g = geo(i);
+    st($('wk-'+i), {x:g.start, y:g.cy});
+    st($('out-'+i), {o:0});
+    st($('rty-'+i), {o:0});
+    st($('bolt-'+i), {o:0});
+    if($('dt-'+i)){ st($('dt-'+i),{r:0}); st($('db-'+i),{r:0}); }
+    const cnt = $('cnt-'+i); cnt.textContent = '0'; cnt.setAttribute('fill', C.steel);
+    for(let p=0;p<4;p++) st($(`pk-${i}-${p}`),{o:0});
+  }
+  const hot = {correction:0, door:1, sealed:2}[state.scenario];
+  if(state.mode==='after'){
+    for(let c=0;c<3;c++) st($('ch-m-'+c),{o:0,k:.9});
+    await wait(80);
+    if(id!==runId) return;
+    for(let c=0;c<3;c++){ tween($('ch-m-'+c),{o:c===hot?1:.34, k:1}, 260,'easeOutBack'); await wait(110); }
+    await wait(120);
+  } else {
+    await wait(60);
+  }
+  if(id!==runId) return;
+  const plan = PLAN[state.scenario][state.mode];
+  await Promise.all([0,1].map(i => ROUTINE[plan[i]](i, id)));
+}
+
+/* ----------------------------------------------------------------- shell */
+const pick = () => matchMedia('(max-width: 760px)').matches ? TALL : WIDE;
+function renderText(){
+  document.documentElement.lang = state.locale;
+  $('h1').innerHTML = `<span class="hi">${T('title_a')}</span> ${T('title_b')}`;
+  $('take').textContent = T(state.mode==='before' ? 'take_before' : 'take_after');
+  $('capView').textContent = T('cap_view');
+  $('capObs').textContent = T('cap_obs');
+  $('replay').textContent = '↻ ' + T('replay');
+  $('modeGrp').setAttribute('aria-label', T('cap_view'));
+  $('scnGrp').setAttribute('aria-label', T('cap_obs'));
+  document.querySelectorAll('#modeGrp button').forEach(b=>{
+    b.textContent = T(b.dataset.mode);
+    b.setAttribute('aria-pressed', String(b.dataset.mode===state.mode));
+  });
+  document.querySelectorAll('#scnGrp button').forEach(b=>{
+    b.textContent = T('sc_'+b.dataset.scn);
+    b.setAttribute('aria-pressed', String(b.dataset.scn===state.scenario));
+  });
+  document.querySelectorAll('#langGrp button').forEach(b=>
+    b.setAttribute('aria-pressed', String(b.dataset.loc===state.locale)));
+  $('note').textContent = T(`note_${state.scenario}_${state.mode}`);
+  $('foot').textContent = state.scenario==='sealed' ? T('foot_sealed') : '';
+}
+function render(jump){
+  L = pick();
+  renderText();
+  $('stage').innerHTML = scene();
+  if(!jump) return play();
+  JUMP = true;
+  return play().finally(()=>{ JUMP = false; });
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.loc){
+    if(b.dataset.loc===state.locale) return;
+    state.locale = b.dataset.loc;
+    render(true);
+    return;
+  }
+  if(b.dataset.mode){ if(b.dataset.mode===state.mode) return; state.mode = b.dataset.mode; }
+  else if(b.dataset.scn){ if(b.dataset.scn===state.scenario) return; state.scenario = b.dataset.scn; }
+  else if(b.id!=='replay') return;
+  render();
+});
+let lastL = null, rt;
+addEventListener('resize', ()=>{
+  clearTimeout(rt);
+  rt = setTimeout(()=>{ if(pick()!==lastL){ lastL = pick(); render(); } }, 180);
+});
+lastL = pick();
+render();
+</script>
+</body>
+</html>
