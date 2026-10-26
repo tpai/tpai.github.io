@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,6 +8,7 @@
     {{/reload}}
 
     <title>{{title}}</title>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fontsource/unifont@5.2.5/files/unifont-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <style type="text/css">
 {{{style}}}
     </style>
@@ -22,11 +23,30 @@ a[href$='.pdf'] {
 
   <body>
 
-    <div class="container">
-      <div class="resume">
-        {{{resume}}}
-      </div>
-    </div>
+    <main>
+      <p class="prompt" id="command">C:\&gt; TYPE RESUME.TXT</p>
 
+      <div class="container" id="resume" tabindex="-1">
+        <div class="resume">
+          {{{resume}}}
+        </div>
+      </div>
+
+      <section class="screen" id="blog" tabindex="-1" hidden></section>
+
+      <p class="prompt prompt-end" aria-hidden="true">C:\&gt;<span class="cursor"></span></p>
+    </main>
+
+    <nav class="eten-bar" aria-label="Keyboard shortcuts">
+      <span class="mode" id="mode">【履歷】</span>
+      <button type="button" data-key="c" aria-keyshortcuts="c"><kbd>C</kbd> <span class="label">Copy<span class="long"> Markdown</span></span></button>
+      <button type="button" data-key="d" aria-keyshortcuts="d"><kbd>D</kbd> <span class="label"><span class="long">Download </span>.docx</span></button>
+      <button type="button" data-key="b" aria-keyshortcuts="b"><kbd>B</kbd> <span class="label">Blog</span></button>
+      <button type="button" data-key="?" aria-keyshortcuts="?"><kbd>?</kbd> <span class="label">Resume</span></button>
+      <span class="msg" id="msg" role="status" aria-live="polite"></span>
+      <span class="brand" lang="zh-Hant">倚天</span>
+    </nav>
+
+    <script src="eten.js" defer></script>
   </body>
 </html>

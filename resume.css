@@ -1,418 +1,562 @@
-@import url(https://fonts.googleapis.com/css?family=EB+Garamond);
+/*
+  倚天中文系統 (ETen Chinese System) theme
 
-/* clearfix */
-.container:before,
-.container:after {
-  content: "";
-  display: table;
+  VGA text mode as ETen drew it: light gray on black, white for emphasis,
+  a blue input-method bar on the last row, reverse video for highlights.
+  Unifont stands in for ETen's 8x16 Latin / 16x16 Chinese bitmap fonts;
+  keep sizes at 16px or exact multiples so the pixels stay crisp.
+
+  black  #000000   screen
+  gray   #AAAAAA   text, box lines, reverse-video background
+  white  #FFFFFF   emphasis
+  blue   #0000AA   input-method bar
+  dim    #555555   rules, secondary info
+*/
+
+@font-face {
+  font-family: 'Unifont';
+  src: url(https://cdn.jsdelivr.net/npm/@fontsource/unifont@5.2.5/files/unifont-latin-400-normal.woff2) format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-.container:after {
-  clear: both;
-}
-
-/* For IE 6/7 (trigger hasLayout) */
-.container {
-  zoom: 1;
+html {
+  background: #000;
 }
 
 body {
-  font-family: 'EB Garamond',sans-serif;
-  font-weight: 300;
-  color: #1D1313;
+  margin: 0;
+  padding: 24px 16px 64px;
+  background: #000;
+  color: #AAAAAA;
+  font-family: 'Unifont', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: normal;
+  -webkit-font-smoothing: none;
+  -webkit-text-size-adjust: 100%;
 }
 
-h1, h2, h3, h4, ul dl dt {
-  font-family: 'EB Garamond',serif;
+::selection {
+  background: #AAAAAA;
+  color: #000;
 }
 
-code {
-  font-family: 'EB Garamond',sans-serif;
+h1, h2, h3, h4, h5, h6, b, strong, th {
+  font-weight: normal;
 }
 
-.container {
-  margin: 0 auto;
-  padding: 0 0 40px 0;
-  background: #fff;
-  border: solid #d22042;
-  border-width: 2px 0 0 0;
-  text-align: left;
+em, i, dfn {
+  font-style: normal;
 }
 
-.resume {
-  position: relative;
-  padding: 10px 20px;
-}
-
-blockquote a {
-  color: #1D1313;
-  -webkit-transition: color 0.3s linear;
-  -moz-transition: color 0.3s linear;
-  -ms-transition: color 0.3s linear;
-  -o-transition: color 0.3s linear;
-  transition: color 0.3s linear;
-}
-
-blockquote a:hover {
-  color: #d22042;
-}
-
-a {
-  color: #d22042;
-}
-
-a[href$='.pdf'] {
-  display: inline-block;
-  background: #1D1313;
-  color: white;
-  padding: 6px 12px;
-  margin-bottom: 6px;
+u {
   text-decoration: none;
 }
 
-blockquote {
-  margin: 0;
-  padding: 0;
-  line-height: 1.4em;
-  text-align: right;
+a {
+  color: #AAAAAA;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-hr:nth-of-type(1) {
-  margin-top: 32px;
+a:hover,
+a:focus-visible,
+button:hover,
+button:focus-visible {
+  background: #AAAAAA;
+  color: #000;
+  text-decoration: none;
+  outline: none;
 }
 
-hr {
-  display: block;
-  position: relative;
+:focus-visible {
+  outline: 1px solid #FFFFFF;
+  outline-offset: 1px;
+}
+
+/* one 80-column text screen */
+.screen,
+.container,
+.prompt {
+  max-width: 80ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.container {
   padding: 0;
-  margin: 18px auto;
-  width: 100%;
-  clear: both;
+  background: none;
   border: none;
-  border-top: 1px solid #CCC;
-  font-size: 1px;
-  line-height: 0;
-  overflow: visible;
-  page-break-after: avoid;
 }
 
-h1 {
-  margin: 0;
-  padding: 0;
-  font-size: 36px;
-  letter-spacing: -1px;
-  font-weight: normal;
-}
-
-h2 {
-  margin: 0;
-  padding: 0;
-  font-size: 18px;
-  font-style: italic;
-  letter-spacing: -1px;
-  font-weight: normal;
-}
-
-h3 {
-  margin: 0;
-  padding: 0 0 .5em;
-  font-size: 150%;
-  font-style: italic;
-  font-weight: normal;
-}
-
-p {
-  margin: 0 0 26px;
-  padding: 0;
-  display: block;
-  font-size: 104%;
-  line-height: 24px;
-}
-
-ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-ul li {
-  margin: 0;
+.resume {
   padding: 0;
 }
 
-ul li p {
-  margin: 0 0.5em 1em;
-  line-height: 120%;
+/* DOS prompt: the command that produced the view, and the idle prompt after it */
+.prompt {
+  margin-top: 0;
+  margin-bottom: 20px;
+  white-space: pre-wrap;
 }
 
-ul dl {
-  margin: .3em 0 0;
-  padding: 0;
-  width: 100%;
-}
-ul dl dt {
-  font-size: 100%;
-}
-ul dl dd {
-  margin: 0 0 1em;
-  padding: 0 2em 0 0;
-  font-size: .8em;
-  line-height: 1.5em;
+.prompt-end {
+  margin-top: 40px;
 }
 
-ol {
-  margin: 0;
-  padding: 0 0 .75em;
-  width: 84%;
+.cursor {
   display: inline-block;
-}
-ol li {
-  margin: 0 0 0 1em;
-  padding: 0;
-  width: 100%;
-  float: left;
-  list-style: none;
-  line-height: 24px;
-  font-size: 16px;
+  width: 1ch;
+  height: 3px;
+  margin-left: 1px;
+  background: #AAAAAA;
+  vertical-align: -2px;
+  animation: eten-blink 1.07s steps(1) infinite;
 }
 
-dl {
-  display: inline-block;
-  width: 75%;
-  margin: 0;
-  padding: 0;
-}
-dl dt {
-  margin: 0;
-  padding: 0;
-  font-size: 140%;
-}
-dl dd {
-  margin: 0 0 1.5em;
-  padding: 0;
-  font-size: 80%;
-  line-height: 1.4em;
-}
-dl strong {
-  display: block;
-}
-dl em {
-  display: block;
-  font-size: 110%;
-  margin: .15em 0 .5em;
-  font-style: bold;
+@keyframes eten-blink {
+  50% { visibility: hidden; }
 }
 
-#footer {
-  display: none;
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
 }
 
-#footer + p {
-  width: 100%;
-  font-size: 11px;
+/* boot box: name, title and contacts framed like ETen's startup banner */
+.resume > h1,
+.resume > h2,
+.resume > blockquote {
+  max-width: 480px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border: 1px solid #AAAAAA;
   text-align: center;
 }
 
-@media screen {
+.resume > h1 {
+  border-bottom: none;
+  padding: 16px 16px 4px;
+  font-size: 32px;
+  line-height: 40px;
+  color: #FFFFFF;
+  letter-spacing: 0;
+}
+
+.resume > h2 {
+  border-top: none;
+  border-bottom: none;
+  padding: 0 2ch 12px;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.resume > blockquote {
+  border-top: 1px solid #555555;
+  padding: 12px 2ch 16px;
+}
+
+.resume > blockquote p {
+  margin: 0;
+}
+
+hr {
+  display: none;
+}
+
+/* section titles: 【Title】───── */
+.resume h3,
+.post h2,
+.post h3 {
+  display: flex;
+  margin: 40px 0 20px;
+  font-size: 16px;
+  line-height: 20px;
+  color: #FFFFFF;
+}
+
+.resume h3:before,
+.post h2:before,
+.post h3:before {
+  content: "【";
+  flex: none;
+}
+
+.resume h3:after,
+.post h2:after,
+.post h3:after {
+  content: "】";
+  flex: 1;
+  min-width: 4ch;
+  background-image: linear-gradient(#555555, #555555);
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: calc(100% - 3ch) 1px;
+}
+
+p {
+  margin: 0 0 20px;
+}
+
+/* job title line: name left, dates right */
+.resume p > u:first-child > b {
+  color: #FFFFFF;
+}
+
+.resume p > u:first-child em {
+  float: right;
+  margin-left: 2ch;
+  color: #AAAAAA;
+}
+
+.resume b,
+.resume strong {
+  color: #FFFFFF;
+}
+
+.resume em {
+  color: #AAAAAA;
+}
+
+.resume ul,
+.post ul,
+.post ol {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.resume ul li {
+  margin: 0;
+}
+
+.resume ul li p {
+  margin: 0 0 20px;
+}
+
+/* education: degree left, years right */
+.resume p > strong:first-child + em {
+  float: right;
+  margin-left: 2ch;
+}
+
+/* blog: directory listing */
+.screen[hidden] {
+  display: none;
+}
+
+.screen:focus {
+  outline: none;
+}
+
+.dir {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.dir li {
+  margin: 0;
+}
+
+.dir a {
+  display: flex;
+  gap: 2ch;
+  padding: 2px 1ch;
+  margin: 0 -1ch;
+  color: #AAAAAA;
+  text-decoration: none;
+}
+
+.dir .n {
+  flex: none;
+  width: 2ch;
+  text-align: right;
+}
+
+.dir .t {
+  flex: 1;
+  color: #FFFFFF;
+}
+
+.dir a:hover,
+.dir a:focus-visible,
+.dir a:hover .t,
+.dir a:focus-visible .t {
+  color: #000;
+}
+
+.dir .d {
+  flex: none;
+}
+
+.dim {
+  color: #555555;
+}
+
+/* blog: post */
+.post h1 {
+  margin: 0 0 20px;
+  font-size: 32px;
+  line-height: 40px;
+  color: #FFFFFF;
+}
+
+.post h4,
+.post h5,
+.post h6 {
+  margin: 20px 0;
+  font-size: 16px;
+  color: #FFFFFF;
+}
+
+.post ul > li,
+.post ol > li {
+  position: relative;
+  padding-left: 2ch;
+}
+
+.post ul > li:before {
+  content: "・";
+  position: absolute;
+  left: 0;
+}
+
+.post ol {
+  counter-reset: item;
+}
+
+.post ol > li {
+  counter-increment: item;
+  padding-left: 4ch;
+}
+
+.post ol > li:before {
+  content: counter(item) ".";
+  position: absolute;
+  left: 0;
+  width: 3ch;
+  text-align: right;
+}
+
+.post li > ul,
+.post li > ol {
+  margin-bottom: 0;
+}
+
+.post strong {
+  color: #FFFFFF;
+}
+
+.post img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 0 20px;
+}
+
+.post blockquote {
+  margin: 0 0 20px;
+  padding: 0 0 0 2ch;
+  border-left: 1px solid #555555;
+}
+
+.post code {
+  font-family: inherit;
+  font-size: 16px;
+  color: #FFFFFF;
+}
+
+.post pre {
+  margin: 0 0 20px;
+  padding: 10px 1ch;
+  border: 1px solid #555555;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.post pre code {
+  color: #AAAAAA;
+}
+
+.post table {
+  border-collapse: collapse;
+  margin: 0 0 20px;
+  display: block;
+  overflow-x: auto;
+}
+
+.post th,
+.post td {
+  border: 1px solid #555555;
+  padding: 0 1ch;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post th {
+  color: #FFFFFF;
+}
+
+.post hr {
+  display: block;
+  height: 0;
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid #555555;
+}
+
+/* ETen's input-method row, reused as the key bar */
+.eten-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  height: 28px;
+  padding: 0 0 0 1ch;
+  background: #0000AA;
+  color: #AAAAAA;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.eten-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.eten-bar button {
+  flex: none;
+  margin: 0;
+  padding: 2px 1ch;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: #AAAAAA;
+  font: inherit;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.eten-bar kbd {
+  font: inherit;
+  color: #FFFFFF;
+}
+
+.eten-bar button:hover kbd,
+.eten-bar button:focus-visible kbd {
+  color: #000;
+}
+
+.eten-bar .mode {
+  flex: none;
+}
+
+.eten-bar .msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #FFFFFF;
+}
+
+.eten-bar .brand {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 1ch;
+  background: #AAAAAA;
+  color: #000;
+}
+
+@media (max-width: 640px) {
   body {
-    padding: 0;
+    padding-top: 16px;
   }
 
-  .container {
-    width: 100%;
-  }
-}
-
-@media (min-width: 1000px) {
-  .container {
-    width: 100%;
+  .resume > h1 {
+    padding-top: 12px;
   }
 
-  .resume {
-    margin: 0 auto;
-    padding: 40px 50px;
-    width: 912px;
+  .resume p > u:first-child em,
+  .resume p > strong:first-child + em {
+    float: none;
+    margin-left: 0;
   }
 
-  blockquote {
-    top: 40px;
-    right: 50px;
-    position: absolute;
+  .resume p > u:first-child em:before,
+  .resume p > strong:first-child + em:before {
+    content: "\A";
+    white-space: pre;
   }
 
-  h1 {
-    margin-top: 0;
-    font-size: 44px;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-weight: normal;
-  }
-
-  h2 {
-    text-transform: uppercase;
-    font-style: italic;
-    letter-spacing: 2px;
-    font-weight: normal;
-  }
-
-  h3 {
-    float: left;
-    width: 16%;
-  }
-
-  h3 ~ p {
-    float: left;
-    margin-left: 16%;
-  }
-
-  h3 + p {
-    margin-left: inherit;
-    float: left;
-    width: 84%;
-  }
-
-  ul li {
-    width: 28%;
-    float: left;
-  }
-
-  ul dl dt {
-    font-size: 122%;
-    font-weight: normal;
-    margin-bottom: 0.75em;
-  }
-
-  ul dl dd {
-    padding: 0 4em 0 0;
-  }
-
-  ol {
-    float: left;
-    margin: 0.6em 0 0;
-  }
-
-  ol li {
-    width: 33%;
-    margin: 0;
-  }
-
-  ol li:nth-child(3n) {
-    width: 34%;
-  }
-
-  ol li:nth-child(1),
-  ol li:nth-child(2),
-  ol li:nth-child(3) {
-    border-top: none;
-  }
-
-  dl {
-    margin: 0.5em 0 0;
-  }
-
-  dl strong {
-    float: right;
-    margin-top: -2em;
-  }
-
-  dl em {
-    font-size: 130%;
-    font-style: normal;
-  }
-}
-
-@media (max-width: 1000px) {
-  blockquote {
-    top: 25px;
-    right: 50px;
-    position: absolute;
-  }
-
-  h1 {
-    margin-top: 0.5em;
-  }
-
-  ol {
-    margin: 0 0 0 2em;
-    padding-bottom: 0;
-    width:100%;
-  }
-
-  ol li {
-    width: 33%;
-    margin: 0;
-  }
-
-  ol li:nth-child(1),
-  ol li:nth-child(2) {
-    border-top: none;
-  }
-
-  ul li {
-    width: 33%;
-    float: left;
-  }
-
-  p {
-    margin-left: 25px;
-    font-size: 16px;
-    line-height: 20px;
-  }
-
-  p strong, p em {
-    font-size: 17px;
-    line-height: 24px;
-  }
-}
-
-@media (max-width: 625px) {
-  ul li {
-    width: 100%;
-  }
-
-  ul a {
-    line-height: 130%;
-  }
-
-  blockquote {
-    float: right;
-    position: static;
-  }
-}
-
-@media (max-width: 625px) {
-  p {
-    margin-left: 5px;
-    font-size: 16px;
-    line-height: 20px;
-  }
-
-  p strong, p em {
-    font-size: 16px;
-    line-height: 20px;
-  }
-
-  ol li {
-    width: 50%;
-    margin: 0;
-    font-size: 16px;
+  .eten-bar .long,
+  .eten-bar .brand {
+    display: none;
   }
 }
 
 @media print {
-  .container {border-top:none;}
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
 
-  .not-printed {
+  body {
+    padding: 0;
+  }
+
+  .prompt,
+  .eten-bar {
     display: none;
   }
 
-  a {
-    text-decoration: none;
+  .screen,
+  .container {
+    max-width: none;
+  }
+
+  .resume > h1,
+  .resume > h2,
+  .resume > blockquote {
+    border-color: #000;
+  }
+
+  .resume h3:after,
+  .post h2:after,
+  .post h3:after {
+    background-image: linear-gradient(#000, #000);
+  }
+
+  a,
+  .resume b,
+  .resume strong,
+  .resume em,
+  .resume h1,
+  .resume h3,
+  .resume p > u:first-child > b,
+  .resume p > u:first-child em,
+  .post h1,
+  .post h2,
+  .post h3,
+  .post strong,
+  .post code,
+  .dir .t {
     color: #000;
+    text-decoration: none;
   }
 }
 
 @page {
   size: auto;
-  margin: 10mm;
+  margin: 12mm;
 }

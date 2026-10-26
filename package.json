@@ -7,7 +7,7 @@
     "dev": "nodemon -w resume.md -w resume.css"
   },
   "betterScripts": {
-    "cp:css": "cp *.css ./node_modules/markdown-resume/assets/css",
+    "cp:css": "rm -f ./node_modules/markdown-resume/assets/css/screen.css ./node_modules/markdown-resume/assets/css/pdf.css && cp *.css ./node_modules/markdown-resume/assets/css",
     "cp:html": "cp default.html ./node_modules/markdown-resume/assets/templates",
     "build:html": "node ./node_modules/markdown-resume/bin/md2resume resume.md",
     "rename": "mv resume.html index.html",
