@@ -2,7 +2,7 @@
 //   C  copy the resume as Markdown        (resume only)
 //   D  download the resume as a .docx file (resume only)
 //   B  list blog posts from github.com/tpai/blog
-//   ?  back to the resume
+//   R  back to the resume
 //   T  toggle 繁體中文 (default) / English
 // Esc steps back (post -> list -> resume); in the list, 1-9 / arrows / Enter pick a post.
 (() => {
@@ -599,7 +599,7 @@
       case 'b':
         go('blog');
         break;
-      case '?':
+      case 'r':
         go('');
         break;
     }
@@ -615,7 +615,7 @@
     if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
 
-    if (key === 'c' || key === 'd' || key === 'b' || key === '?' || key === 't') {
+    if (key === 'c' || key === 'd' || key === 'b' || key === 'r' || key === 't') {
       e.preventDefault();
       run(key);
       return;
