@@ -510,8 +510,13 @@ p {
   }
 
   .eten-bar .long,
-  .eten-bar .brand {
+  .eten-bar .brand,
+  .eten-bar .mode {
     display: none;
+  }
+
+  .eten-bar button {
+    padding: 2px 0.5ch;
   }
 }
 
