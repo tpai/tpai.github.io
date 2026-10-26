@@ -98,6 +98,9 @@
 * **Microsoft Certified: DevOps Engineer Expert**
     <a href="https://learn.microsoft.com/api/credentials/share/en-us/tpai/6BAD7DB9DF7A077C?sharingId=394F5F2744B18C24" target="_blank">2021 年 9 月取得</a>
 
+* **Microsoft Certified: Azure Administrator Associate**
+    <a href="https://learn.microsoft.com/api/credentials/share/en-us/tpai/C8E0900F7916E001" target="_blank">2021 年 4 月取得</a>
+
 ------
 
 ### 演講
