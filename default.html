@@ -9,7 +9,7 @@
 
     <title>{{title}}</title>
     <script>
-      // zh-TW is the default; apply a saved English choice before first paint (see eten.js).
+      // zh-TW is the default; apply a saved English choice before first paint (see keys.js).
       try { if (localStorage.getItem('lang') === 'en') { document.documentElement.setAttribute('data-lang', 'en'); document.documentElement.lang = 'en'; } } catch (e) {}
     </script>
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fontsource/unifont@5.2.5/files/unifont-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
@@ -46,17 +46,17 @@ a[href$='.pdf'] {
       <p class="prompt prompt-end" aria-hidden="true">C:\&gt;<span class="cursor"></span></p>
     </main>
 
-    <nav class="eten-bar" aria-label="快速鍵">
-      <span class="mode" id="mode">【履歷】</span>
-      <button type="button" data-key="b" aria-keyshortcuts="b"><kbd>B</kbd> <span class="label" data-i18n="blog">文章</span></button>
+    <nav class="key-bar" aria-label="快速鍵">
       <button type="button" data-key="r" aria-keyshortcuts="r"><kbd>R</kbd> <span class="label" data-i18n="resume">履歷</span></button>
-      <button type="button" data-key="t" aria-keyshortcuts="t"><kbd>T</kbd> <span class="label" data-i18n="toggle" lang="en">English</span></button>
+      <button type="button" data-key="b" aria-keyshortcuts="b"><kbd>B</kbd> <span class="label" data-i18n="blog">文章</span></button>
+      <span class="mode" id="mode">【履歷】</span>
       <span class="msg" id="msg" role="status" aria-live="polite"></span>
+      <button type="button" data-key="t" aria-keyshortcuts="t"><kbd>T</kbd> <span class="label" data-i18n="toggle" lang="en">English</span></button>
       <button type="button" data-key="c" aria-keyshortcuts="c"><kbd>C</kbd> <span class="label"><span data-i18n="copy">複製</span><span class="long" data-i18n="copyLong"> Markdown</span></span></button>
       <button type="button" data-key="d" aria-keyshortcuts="d"><kbd>D</kbd> <span class="label"><span class="long" data-i18n="downloadLong">下載 </span>.docx</span></button>
-      <span class="brand" lang="zh-Hant">倚天</span>
+      <span class="brand" lang="zh-Hant">奇天</span>
     </nav>
 
-    <script src="eten.js" defer></script>
+    <script src="keys.js" defer></script>
   </body>
 </html>

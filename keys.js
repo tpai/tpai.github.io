@@ -1,9 +1,9 @@
-// Keyboard shortcuts for the ETen-style resume:
+// Keyboard shortcuts for the DOS-style resume:
 //   C  copy the resume as Markdown        (resume only)
 //   D  download the resume as a .docx file (resume only)
 //   B  list blog posts from posts/ in this repo
 //   R  back to the resume
-//   T  toggle 繁體中文 (default) / English
+//   T  toggle 繁體中文 (default) / English  (resume only)
 // Esc steps back (post -> list -> resume); in the list, 1-9 / arrows / Enter pick a post.
 (() => {
   'use strict';
@@ -138,7 +138,7 @@
     document.querySelectorAll('[data-i18n]').forEach((node) => {
       node.textContent = t()[node.dataset.i18n];
     });
-    document.querySelector('.eten-bar').setAttribute('aria-label', t().bar);
+    document.querySelector('.key-bar').setAttribute('aria-label', t().bar);
     document.title = currentPost ? `${currentPost.title} | Tony Pai` : resumeTitle();
     localizeView();
   }
@@ -481,7 +481,7 @@
     document.title = resumeTitle();
 
     const blog = hash === 'blog' || hash.startsWith('blog/');
-    document.querySelectorAll('[data-key="c"], [data-key="d"]').forEach((button) => {
+    document.querySelectorAll('[data-key="t"], [data-key="c"], [data-key="d"]').forEach((button) => {
       button.hidden = blog;
     });
 
@@ -595,6 +595,7 @@
         break;
       }
       case 't':
+        if (inBlog()) break;
         toggleLang();
         break;
       case 'b':
@@ -606,7 +607,7 @@
     }
   }
 
-  document.querySelector('.eten-bar').addEventListener('click', (e) => {
+  document.querySelector('.key-bar').addEventListener('click', (e) => {
     const button = e.target.closest('button[data-key]');
     if (button) run(button.dataset.key);
   });

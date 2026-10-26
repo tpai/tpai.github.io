@@ -1,9 +1,9 @@
 /*
-  倚天中文系統 (ETen Chinese System) theme
+  DOS Chinese text-mode theme
 
-  VGA text mode as ETen drew it: light gray on black, white for emphasis,
+  VGA text mode as DOS-era Chinese systems drew it: light gray on black, white for emphasis,
   a blue input-method bar on the last row, reverse video for highlights.
-  Unifont stands in for ETen's 8x16 Latin / 16x16 Chinese bitmap fonts;
+  Unifont stands in for the 8x16 Latin / 16x16 Chinese bitmap fonts;
   keep sizes at 16px or exact multiples so the pixels stay crisp.
 
   black  #000000   screen
@@ -123,10 +123,10 @@ html[data-lang="en"] .resume[lang="en"] {
   margin-left: 1px;
   background: #AAAAAA;
   vertical-align: -2px;
-  animation: eten-blink 1.07s steps(1) infinite;
+  animation: blink 1.07s steps(1) infinite;
 }
 
-@keyframes eten-blink {
+@keyframes blink {
   50% { visibility: hidden; }
 }
 
@@ -136,7 +136,7 @@ html[data-lang="en"] .resume[lang="en"] {
   }
 }
 
-/* boot box: name, title and contacts framed like ETen's startup banner */
+/* boot box: name, title and contacts framed like a DOS startup banner */
 .resume > h1,
 .resume > h2,
 .resume > blockquote {
@@ -420,8 +420,8 @@ p {
   border-top: 1px solid #555555;
 }
 
-/* ETen's input-method row, reused as the key bar */
-.eten-bar {
+/* the input-method row, reused as the key bar */
+.key-bar {
   position: fixed;
   left: 0;
   right: 0;
@@ -439,11 +439,11 @@ p {
   scrollbar-width: none;
 }
 
-.eten-bar::-webkit-scrollbar {
+.key-bar::-webkit-scrollbar {
   display: none;
 }
 
-.eten-bar button {
+.key-bar button {
   flex: none;
   margin: 0;
   padding: 2px 1ch;
@@ -456,21 +456,21 @@ p {
   cursor: pointer;
 }
 
-.eten-bar kbd {
+.key-bar kbd {
   font: inherit;
   color: #FFFFFF;
 }
 
-.eten-bar button:hover kbd,
-.eten-bar button:focus-visible kbd {
+.key-bar button:hover kbd,
+.key-bar button:focus-visible kbd {
   color: #000;
 }
 
-.eten-bar .mode {
+.key-bar .mode {
   flex: none;
 }
 
-.eten-bar .msg {
+.key-bar .msg {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -478,7 +478,7 @@ p {
   color: #FFFFFF;
 }
 
-.eten-bar .brand {
+.key-bar .brand {
   flex: none;
   align-self: stretch;
   display: flex;
@@ -491,6 +491,7 @@ p {
 @media (max-width: 640px) {
   body {
     padding-top: 16px;
+    padding-bottom: 72px;
   }
 
   .resume > h1 {
@@ -509,14 +510,41 @@ p {
     white-space: pre;
   }
 
-  .eten-bar .long,
-  .eten-bar .brand,
-  .eten-bar .mode {
+  .key-bar .long,
+  .key-bar .brand,
+  .key-bar .mode {
     display: none;
   }
 
-  .eten-bar button {
-    padding: 2px 0.5ch;
+  /* thumb-sized keys; the message still takes whatever room is left */
+  .key-bar {
+    gap: 0;
+    height: 40px;
+    padding: 0;
+  }
+
+  .key-bar button {
+    align-self: stretch;
+    padding: 0 0.5ch;
+  }
+
+  /* no room beside the keys: messages get their own row above the bar */
+  .key-bar .msg {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 40px;
+    padding: 4px 1ch;
+    background: #0000AA;
+    border-bottom: 1px solid #555555;
+  }
+
+  .key-bar .msg:empty {
+    display: none;
+  }
+
+  .key-bar [data-key="t"] {
+    margin-left: auto;
   }
 }
 
@@ -532,7 +560,7 @@ p {
   }
 
   .prompt,
-  .eten-bar {
+  .key-bar {
     display: none;
   }
 
