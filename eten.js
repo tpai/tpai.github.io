@@ -1,6 +1,6 @@
 // Keyboard shortcuts for the ETen-style resume:
-//   C  copy the current page (resume or blog post) as Markdown
-//   D  download the resume as a .docx file
+//   C  copy the resume as Markdown        (resume only)
+//   D  download the resume as a .docx file (resume only)
 //   B  list blog posts from github.com/tpai/blog
 //   ?  back to the resume
 // Esc steps back (post -> list -> resume); in the list, 1-9 / arrows / Enter pick a post.
@@ -393,7 +393,12 @@
     currentPost = null;
     document.title = resumeTitle;
 
-    if (hash !== 'blog' && !hash.startsWith('blog/')) {
+    const blog = hash === 'blog' || hash.startsWith('blog/');
+    document.querySelectorAll('[data-key="c"], [data-key="d"]').forEach((button) => {
+      button.hidden = blog;
+    });
+
+    if (!blog) {
       resumeView.hidden = false;
       blogView.hidden = true;
       mode.textContent = '【履歷】';
@@ -460,19 +465,16 @@
   async function run(key) {
     switch (key) {
       case 'c':
+        if (inBlog()) break;
         try {
-          if (currentPost) {
-            await copyText(currentPost.body);
-            say(`Copied "${currentPost.title}" as Markdown`);
-          } else {
-            await copyText(resumeMarkdown());
-            say('Copied resume as Markdown');
-          }
+          await copyText(resumeMarkdown());
+          say('Copied resume as Markdown');
         } catch (err) {
           say(`Couldn't copy: ${err.message}`);
         }
         break;
       case 'd':
+        if (inBlog()) break;
         say(`Building ${DOCX_NAME} ...`, true);
         try {
           const blob = await resumeDocx();

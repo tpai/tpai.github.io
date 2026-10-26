@@ -248,7 +248,8 @@ p {
   display: none;
 }
 
-.screen:focus {
+/* views take focus on navigation; only real controls show an outline */
+[tabindex="-1"]:focus {
   outline: none;
 }
 
