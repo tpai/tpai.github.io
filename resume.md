@@ -9,18 +9,15 @@
 
 ### Experience
 
-<u><b>OneDegree / Principal Site Reliability Engineer *2022.7-2025.3*</b></u>
-    Coordinated SRE resources across multiple business entities while managing systems, designed solutions, integrating tools, and prototyping stacks.
-    ・Managed ETL systems for data pipeline.
-    ・Designed on-premises and cloud solutions for core products.
-    ・Integrated Fortify with pipelines for generating scanning reports.
-    ・Created a MLflow stack PoC to help AI team streamline model finetuning.
-    ・Coordinated SRE resources across business entities.
+<u><b>OneDegree / Principal Site Reliability Engineer *2022.7-Present*</b></u>
+    Responsible for system operations, solution design, tool integration, and tech stack prototyping.
+    ・Designed on-premises and cloud solutions for core products (insurance core system and AI guardrails).
+    ・Experienced in working with data center (IDC) providers in Taiwan.
+    ・Experienced in cross-border collaboration and on-site deployments.
     <b>Achievements</b>
-    ・Continuously optimize system architecutre and housekeeping efforts to reduce cloud costs by at least 30% for each business unit.
     ・Successfully implemented an on-premises solution in collaboration with an international insurance broker for Tesla car insurance sales in Taiwan.
-    ・Organized 20 internal technology-sharing events.
-    ・Delivered AI and Kubernetes talks at iThome conferences in 2023 and 2024.
+    ・Built a highly available SaaS environment, giving clients more deployment options.
+    ・Successfully deployed AI guardrails on the private cloud of a Korean financial insurance client.
     <b>Tech Stack</b>
     ・Docker, Kubernetes, On-Premises, Azure, GCP, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform, Python, Shell, Cloudflare ZTNA
 
