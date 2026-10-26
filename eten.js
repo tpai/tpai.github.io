@@ -3,13 +3,14 @@
 //   D  download the resume as a .docx file (resume only)
 //   B  list blog posts from github.com/tpai/blog
 //   ?  back to the resume
+//   T  toggle 繁體中文 (default) / English
 // Esc steps back (post -> list -> resume); in the list, 1-9 / arrows / Enter pick a post.
 (() => {
   'use strict';
 
   const BLOG_REPO = 'tpai/blog';
   const BLOG_EXCLUDE = ['Local-LLM-benchmark.md'];
-  const DOCX_NAME = 'Tony-Pai-Resume.docx';
+  const DOCX_NAME = { 'zh-TW': 'Tony-Pai-Resume-zh-TW.docx', en: 'Tony-Pai-Resume.docx' };
   const LIBS = {
     marked: 'https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js',
     purify: 'https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js',
@@ -22,11 +23,53 @@
   const command = $('command');
   const mode = $('mode');
   const msg = $('msg');
-  const resumeTitle = document.title;
+  const STRINGS = {
+    'zh-TW': {
+      htmlLang: 'zh-Hant-TW',
+      copy: '複製', copyLong: ' Markdown', downloadLong: '下載 ', blog: '文章', resume: '履歷', toggle: 'English',
+      bar: '快速鍵',
+      switched: '已切換為繁體中文',
+      copied: '已將履歷複製為 Markdown',
+      copyFailed: (m) => `無法複製：${m}`,
+      building: (f) => `正在產生 ${f} ...`,
+      downloaded: (f) => `已下載 ${f}`,
+      docxFailed: (m) => `無法產生 .docx：${m}`,
+      reading: '讀取 C:\\BLOG 中 ...',
+      listHint: (n, keys) => `共 ${n} 篇文章。按 ${keys} 或 Enter 閱讀，Esc 返回履歷。`,
+      postHint: '按 Esc 返回文章列表。',
+      notFound: (slug) => `找不到檔案：BLOG\\${slug}.md`,
+      notFoundHint: '按 B 列出所有文章。',
+      blogFailed: (m) => `無法讀取文章：${m}。`,
+      retry: '按 B 重試。',
+    },
+    en: {
+      htmlLang: 'en',
+      copy: 'Copy', copyLong: ' Markdown', downloadLong: 'Download ', blog: 'Blog', resume: 'Resume', toggle: '中文',
+      bar: 'Keyboard shortcuts',
+      switched: 'Switched to English',
+      copied: 'Copied resume as Markdown',
+      copyFailed: (m) => `Couldn't copy: ${m}`,
+      building: (f) => `Building ${f} ...`,
+      downloaded: (f) => `Downloaded ${f}`,
+      docxFailed: (m) => `Couldn't build the .docx: ${m}`,
+      reading: 'Reading C:\\BLOG ...',
+      listHint: (n, keys) => `${n} posts. Press ${keys} or Enter to read one, Esc to go back.`,
+      postHint: 'Esc back to the list.',
+      notFound: (slug) => `File not found: BLOG\\${slug}.md`,
+      notFoundHint: 'Press B to list the posts.',
+      blogFailed: (m) => `Couldn't read the blog: ${m}.`,
+      retry: 'Press B to try again.',
+    },
+  };
+
+  let lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh-TW';
+  const t = () => STRINGS[lang];
 
   let currentPost = null;
   let routeToken = 0;
   let msgTimer;
+  // Re-renders the language-dependent text of the current blog view after T.
+  let localizeView = () => {};
 
   // ---------- small helpers ----------
 
@@ -75,6 +118,39 @@
       ta.remove();
       if (!ok) throw new Error('the browser blocked clipboard access');
     }
+  }
+
+  // ---------- language ----------
+
+  const activeResume = () => document.querySelector(`.resume[lang="${t().htmlLang}"]`);
+
+  function resumeTitle() {
+    const resume = activeResume();
+    return `${resume.querySelector('h1').textContent.trim()} | ${resume.querySelector('h2').textContent.trim()}`;
+  }
+
+  function applyLang() {
+    const root = document.documentElement;
+    root.lang = t().htmlLang;
+    if (lang === 'en') root.setAttribute('data-lang', 'en');
+    else root.removeAttribute('data-lang');
+    document.querySelectorAll('[data-i18n]').forEach((node) => {
+      node.textContent = t()[node.dataset.i18n];
+    });
+    document.querySelector('.eten-bar').setAttribute('aria-label', t().bar);
+    document.title = currentPost ? `${currentPost.title} | Tony Pai` : resumeTitle();
+    localizeView();
+  }
+
+  function toggleLang() {
+    lang = lang === 'en' ? 'zh-TW' : 'en';
+    try {
+      localStorage.setItem('lang', lang);
+    } catch (err) {
+      // Private mode or blocked storage: the toggle still works for this visit.
+    }
+    applyLang();
+    say(t().switched);
   }
 
   // ---------- resume DOM -> block model ----------
@@ -126,7 +202,7 @@
 
   function resumeBlocks() {
     const blocks = [];
-    for (const node of document.querySelector('.resume').children) {
+    for (const node of activeResume().children) {
       switch (node.nodeName) {
         case 'H1': blocks.push({ type: 'name', text: node.textContent.trim() }); break;
         case 'H2': blocks.push({ type: 'role', text: node.textContent.trim() }); break;
@@ -278,8 +354,14 @@
 
     const doc = new D.Document({
       creator: 'Tony Pai',
-      title: resumeTitle,
-      styles: { default: { document: { run: { font: 'Calibri', size: 21 } } } },
+      title: resumeTitle(),
+      styles: {
+        default: {
+          document: {
+            run: { font: { ascii: 'Calibri', hAnsi: 'Calibri', cs: 'Calibri', eastAsia: 'Microsoft JhengHei' }, size: 21 },
+          },
+        },
+      },
       sections: [{
         properties: { page: { margin: { top: 720, bottom: 720, left: 900, right: 900 } } },
         children,
@@ -362,10 +444,10 @@
       list.append(li);
     });
     const keys = posts.length > 1 ? `1-${Math.min(9, posts.length)}` : '1';
-    blogView.replaceChildren(
-      list,
-      el('p', 'dim', `${posts.length} posts. Press ${keys} or Enter to read one, Esc to go back.`),
-    );
+    const hint = el('p', 'dim');
+    localizeView = () => { hint.textContent = t().listHint(posts.length, keys); };
+    localizeView();
+    blogView.replaceChildren(list, hint);
   }
 
   function renderPost(post) {
@@ -380,7 +462,10 @@
       a.target = '_blank';
       a.rel = 'noopener';
     });
-    blogView.replaceChildren(article, el('p', 'dim', 'Esc back to the list.'));
+    const hint = el('p', 'dim');
+    localizeView = () => { hint.textContent = t().postHint; };
+    localizeView();
+    blogView.replaceChildren(article, hint);
     currentPost = post;
     document.title = `${post.title} | Tony Pai`;
   }
@@ -391,7 +476,8 @@
     const token = ++routeToken;
     const hash = decodeURIComponent(location.hash.slice(1));
     currentPost = null;
-    document.title = resumeTitle;
+    localizeView = () => {};
+    document.title = resumeTitle();
 
     const blog = hash === 'blog' || hash.startsWith('blog/');
     document.querySelectorAll('[data-key="c"], [data-key="d"]').forEach((button) => {
@@ -412,7 +498,10 @@
     blogView.hidden = false;
     mode.textContent = '【文章】';
     command.textContent = slug ? `C:\\> TYPE BLOG\\${slug}.md` : 'C:\\> DIR BLOG';
-    blogView.replaceChildren(el('p', null, 'Reading C:\\BLOG ...'));
+    const loading = el('p');
+    localizeView = () => { loading.textContent = t().reading; };
+    localizeView();
+    blogView.replaceChildren(loading);
     if (moveFocus) settle(blogView);
 
     try {
@@ -430,12 +519,23 @@
       if (post) {
         renderPost(post);
       } else {
-        blogView.replaceChildren(el('p', null, `File not found: BLOG\\${slug}.md`), el('p', 'dim', 'Press B to list the posts.'));
+        showError(() => t().notFound(slug), () => t().notFoundHint);
       }
     } catch (err) {
       if (token !== routeToken) return;
-      blogView.replaceChildren(el('p', null, `Couldn't read the blog: ${err.message}.`), el('p', 'dim', 'Press B to try again.'));
+      showError(() => t().blogFailed(err.message), () => t().retry);
     }
+  }
+
+  function showError(message, hint) {
+    const line = el('p');
+    const help = el('p', 'dim');
+    localizeView = () => {
+      line.textContent = message();
+      help.textContent = hint();
+    };
+    localizeView();
+    blogView.replaceChildren(line, help);
   }
 
   function settle(view) {
@@ -468,28 +568,33 @@
         if (inBlog()) break;
         try {
           await copyText(resumeMarkdown());
-          say('Copied resume as Markdown');
+          say(t().copied);
         } catch (err) {
-          say(`Couldn't copy: ${err.message}`);
+          say(t().copyFailed(err.message));
         }
         break;
-      case 'd':
+      case 'd': {
         if (inBlog()) break;
-        say(`Building ${DOCX_NAME} ...`, true);
+        const name = DOCX_NAME[lang];
+        say(t().building(name), true);
         try {
           const blob = await resumeDocx();
           const url = URL.createObjectURL(blob);
           const a = el('a');
           a.href = url;
-          a.download = DOCX_NAME;
+          a.download = name;
           document.body.appendChild(a);
           a.click();
           a.remove();
           setTimeout(() => URL.revokeObjectURL(url), 1000);
-          say(`Downloaded ${DOCX_NAME}`);
+          say(t().downloaded(name));
         } catch (err) {
-          say(`Couldn't build the .docx: ${err.message}`);
+          say(t().docxFailed(err.message));
         }
+        break;
+      }
+      case 't':
+        toggleLang();
         break;
       case 'b':
         go('blog');
@@ -510,7 +615,7 @@
     if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
 
-    if (key === 'c' || key === 'd' || key === 'b' || key === '?') {
+    if (key === 'c' || key === 'd' || key === 'b' || key === '?' || key === 't') {
       e.preventDefault();
       run(key);
       return;
@@ -536,5 +641,6 @@
     }
   });
 
+  applyLang();
   route(false);
 })();

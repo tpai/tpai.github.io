@@ -95,6 +95,16 @@ button:focus-visible {
   padding: 0;
 }
 
+/* language toggle (T): zh-TW by default, html[data-lang="en"] switches to English */
+.resume[lang="en"],
+html[data-lang="en"] .resume[lang="zh-Hant-TW"] {
+  display: none;
+}
+
+html[data-lang="en"] .resume[lang="en"] {
+  display: block;
+}
+
 /* DOS prompt: the command that produced the view, and the idle prompt after it */
 .prompt {
   margin-top: 0;

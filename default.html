@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant-TW">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,6 +8,10 @@
     {{/reload}}
 
     <title>{{title}}</title>
+    <script>
+      // zh-TW is the default; apply a saved English choice before first paint (see eten.js).
+      try { if (localStorage.getItem('lang') === 'en') { document.documentElement.setAttribute('data-lang', 'en'); document.documentElement.lang = 'en'; } } catch (e) {}
+    </script>
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fontsource/unifont@5.2.5/files/unifont-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <style type="text/css">
 {{{style}}}
@@ -27,8 +31,13 @@ a[href$='.pdf'] {
       <p class="prompt" id="command">C:\&gt; TYPE RESUME.TXT</p>
 
       <div class="container" id="resume" tabindex="-1">
-        <div class="resume">
+        <div class="resume" lang="en">
+          <!-- resume:start -->
           {{{resume}}}
+          <!-- resume:end -->
+        </div>
+        <div class="resume" lang="zh-Hant-TW">
+          <!-- resume:zh-TW -->
         </div>
       </div>
 
@@ -37,12 +46,13 @@ a[href$='.pdf'] {
       <p class="prompt prompt-end" aria-hidden="true">C:\&gt;<span class="cursor"></span></p>
     </main>
 
-    <nav class="eten-bar" aria-label="Keyboard shortcuts">
+    <nav class="eten-bar" aria-label="快速鍵">
       <span class="mode" id="mode">【履歷】</span>
-      <button type="button" data-key="c" aria-keyshortcuts="c"><kbd>C</kbd> <span class="label">Copy<span class="long"> Markdown</span></span></button>
-      <button type="button" data-key="d" aria-keyshortcuts="d"><kbd>D</kbd> <span class="label"><span class="long">Download </span>.docx</span></button>
-      <button type="button" data-key="b" aria-keyshortcuts="b"><kbd>B</kbd> <span class="label">Blog</span></button>
-      <button type="button" data-key="?" aria-keyshortcuts="?"><kbd>?</kbd> <span class="label">Resume</span></button>
+      <button type="button" data-key="c" aria-keyshortcuts="c"><kbd>C</kbd> <span class="label"><span data-i18n="copy">複製</span><span class="long" data-i18n="copyLong"> Markdown</span></span></button>
+      <button type="button" data-key="d" aria-keyshortcuts="d"><kbd>D</kbd> <span class="label"><span class="long" data-i18n="downloadLong">下載 </span>.docx</span></button>
+      <button type="button" data-key="b" aria-keyshortcuts="b"><kbd>B</kbd> <span class="label" data-i18n="blog">文章</span></button>
+      <button type="button" data-key="?" aria-keyshortcuts="?"><kbd>?</kbd> <span class="label" data-i18n="resume">履歷</span></button>
+      <button type="button" data-key="t" aria-keyshortcuts="t"><kbd>T</kbd> <span class="label" data-i18n="toggle" lang="en">English</span></button>
       <span class="msg" id="msg" role="status" aria-live="polite"></span>
       <span class="brand" lang="zh-Hant">倚天</span>
     </nav>
