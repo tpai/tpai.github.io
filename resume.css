@@ -461,9 +461,19 @@ p {
   color: #FFFFFF;
 }
 
-.key-bar button:hover kbd,
+.key-bar button:focus-visible,
 .key-bar button:focus-visible kbd {
+  background: #AAAAAA;
   color: #000;
+}
+
+/* touch screens keep :hover after a tap, so only real pointers get it */
+@media (hover: hover) {
+  .key-bar button:hover,
+  .key-bar button:hover kbd {
+    background: #AAAAAA;
+    color: #000;
+  }
 }
 
 .key-bar .mode {
@@ -536,7 +546,6 @@ p {
     bottom: 40px;
     padding: 4px 1ch;
     background: #0000AA;
-    border-bottom: 1px solid #555555;
   }
 
   .key-bar .msg:empty {
