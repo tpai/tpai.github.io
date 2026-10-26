@@ -1,14 +1,15 @@
 // Keyboard shortcuts for the ETen-style resume:
 //   C  copy the resume as Markdown        (resume only)
 //   D  download the resume as a .docx file (resume only)
-//   B  list blog posts from github.com/tpai/blog
+//   B  list blog posts from posts/ in this repo
 //   R  back to the resume
 //   T  toggle 繁體中文 (default) / English
 // Esc steps back (post -> list -> resume); in the list, 1-9 / arrows / Enter pick a post.
 (() => {
   'use strict';
 
-  const BLOG_REPO = 'tpai/blog';
+  const BLOG_REPO = 'tpai/tpai.github.io';
+  const BLOG_BRANCH = 'master';
   const BLOG_EXCLUDE = ['Local-LLM-benchmark.md'];
   const DOCX_NAME = { 'zh-TW': 'Tony-Pai-Resume-zh-TW.docx', en: 'Tony-Pai-Resume.docx' };
   const LIBS = {
@@ -392,13 +393,13 @@
         .map((f) => ({ name: f.name, url: f.download_url }));
     } catch (err) {
       // GitHub's API allows 60 requests an hour per IP; jsDelivr mirrors the repo.
-      const res = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${BLOG_REPO}@main?structure=flat`);
+      const res = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${BLOG_REPO}@${BLOG_BRANCH}?structure=flat`);
       if (!res.ok) throw new Error(`GitHub and jsDelivr both failed (${res.status})`);
       return (await res.json()).files
         .filter((f) => /^\/posts\/[^/]+$/.test(f.name))
         .map((f) => ({
           name: f.name.slice('/posts/'.length),
-          url: `https://cdn.jsdelivr.net/gh/${BLOG_REPO}@main${f.name}`,
+          url: `https://cdn.jsdelivr.net/gh/${BLOG_REPO}@${BLOG_BRANCH}${f.name}`,
         }));
     }
   }
@@ -455,7 +456,7 @@
     article.innerHTML = window.DOMPurify.sanitize(window.marked.parse(post.body));
     article.querySelectorAll('img').forEach((img) => {
       const src = img.getAttribute('src') || '';
-      if (src.startsWith('/')) img.src = `https://raw.githubusercontent.com/${BLOG_REPO}/main${src}`;
+      if (src.startsWith('/')) img.src = `https://raw.githubusercontent.com/${BLOG_REPO}/${BLOG_BRANCH}${src}`;
       img.loading = 'lazy';
     });
     article.querySelectorAll('a[href^="http"]').forEach((a) => {
