@@ -308,6 +308,101 @@ p {
   color: #555555;
 }
 
+/* works: TREE output, branches drawn with 1px lines so they stay crisp */
+.tree {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.work {
+  position: relative;
+  padding: 0 0 28px 4ch;
+}
+
+/* trunk │ and branch ── ; the last entry's trunk stops at its branch (└──) */
+.work:before,
+.work:after {
+  content: "";
+  position: absolute;
+  left: 1ch;
+  border-color: #555555;
+  border-style: solid;
+  border-width: 0;
+}
+
+.work:before {
+  top: 0;
+  bottom: 0;
+  border-left-width: 1px;
+}
+
+.work:last-child:before {
+  bottom: auto;
+  height: 12px;
+}
+
+.work:after {
+  top: 11px;
+  width: 2ch;
+  border-top-width: 1px;
+}
+
+.work .title {
+  display: flex;
+  gap: 2ch;
+  padding: 2px 1ch;
+  margin: 0 -1ch;
+  color: #FFFFFF;
+  text-decoration: none;
+}
+
+.work .title .t {
+  flex: 1;
+  min-width: 0;
+}
+
+.work .title .host {
+  flex: none;
+  color: #AAAAAA;
+}
+
+.work .title:hover,
+.work .title:focus-visible,
+.work .title:hover .host,
+.work .title:focus-visible .host {
+  color: #000;
+}
+
+.work .body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2ch;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.work .shot {
+  display: block;
+  border: 1px solid #555555;
+  line-height: 0;
+}
+
+.work .shot:hover {
+  border-color: #AAAAAA;
+  background: none;
+}
+
+.work .shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.work .body p {
+  margin: 0;
+}
+
 /* blog: post */
 .post h1 {
   margin: 0 0 20px;
@@ -518,6 +613,21 @@ p {
   .resume p > strong:first-child + em:before {
     content: "\A";
     white-space: pre;
+  }
+
+  /* already on the resume: R would do nothing, and W needs the room */
+  [data-view="resume"] .key-bar [data-key="r"] {
+    display: none;
+  }
+
+  .work .body {
+    grid-template-columns: 1fr;
+  }
+
+  .work .title {
+    flex-wrap: wrap;
+    column-gap: 2ch;
+    row-gap: 0;
   }
 
   .key-bar .long,

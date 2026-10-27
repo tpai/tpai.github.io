@@ -2,9 +2,11 @@
 //   C  copy the resume as Markdown        (resume only)
 //   D  download the resume as a .docx file (resume only)
 //   B  list blog posts from posts/ in this repo
+//   W  list my works (WORKS below, screenshots in images/works/)
 //   R  back to the resume
 //   T  toggle 繁體中文 (default) / English  (resume only)
-// Esc steps back (post -> list -> resume); in the list, 1-9 / arrows / Enter pick a post.
+// Esc steps back (post -> list -> resume, works -> resume);
+// in the blog list 1-9 / arrows / Enter pick a post, in works arrows / Enter open one.
 (() => {
   'use strict';
 
@@ -18,16 +20,120 @@
     docx: 'https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.iife.js',
   };
 
+  // Shown by W, in this order; screenshots live at images/works/<slug>.jpg (640x400).
+  const WORKS = [
+    {
+      slug: 'games',
+      url: 'https://tonypa.in/games/',
+      title: { 'zh-TW': '我玩過的遊戲', en: 'Games I played' },
+      desc: {
+        'zh-TW': '我玩過的遊戲紀錄，橫跨 Steam、Switch、PlayStation 與 Quest，可依完成狀態、平台、類型與工作室篩選。',
+        en: 'My record of the games I have played on Steam, Switch, PlayStation and Quest, filterable by completion, platform, genre and studio.',
+      },
+    },
+    {
+      slug: 'itch',
+      url: 'https://tonypai.itch.io/',
+      title: { 'zh-TW': '我做的遊戲', en: 'Games I made' },
+      desc: {
+        'zh-TW': '我在 itch.io 上的遊戲，多是 Game Jam 作品，例如 Ludum Dare 31 的 Mobile Life、Global Game Jam 的 Choose，以及 Reverse Tetris，大多能直接在瀏覽器遊玩。',
+        en: 'My games on itch.io, mostly game jam entries such as Mobile Life (Ludum Dare 31), Choose (Global Game Jam) and Reverse Tetris. Most of them play in the browser.',
+      },
+    },
+    {
+      slug: 'dogedeck',
+      url: 'https://www.tonypa.in/dogedeck/',
+      title: { 'zh-TW': 'Doge Deck', en: 'Doge Deck' },
+      desc: {
+        'zh-TW': '蒐集迷因圖的小工具，圖片皆為遊戲王卡片風格並充滿柴犬，讓喜愛迷因的人更方便搜尋與投稿。上線一週即爆紅，累計吸引 13 萬名不重複訪客。',
+        en: 'Doge memes as Yu-Gi-Oh! cards, searchable by card type, with a way for fans to submit their own. It went viral within a week and drew 130,000 unique visitors.',
+      },
+    },
+    {
+      slug: 'idiomthon',
+      url: 'https://idiomthon.tonypa.in',
+      title: { 'zh-TW': 'Idiomthon', en: 'Idiomthon' },
+      desc: {
+        'zh-TW': '多人即時搶答的成語填空遊戲：每個成語缺一個字，最先答對的人得分並登上排行榜。',
+        en: 'A real-time multiplayer idiom quiz: each Chinese idiom is missing a character, and the fastest correct answer scores and climbs the leaderboard.',
+      },
+    },
+    {
+      slug: 'turtle-soup',
+      url: 'https://turtle-soup.tonypa.in',
+      title: { 'zh-TW': '大家來喝海龜湯', en: 'Turtle Soup' },
+      desc: {
+        'zh-TW': '靈感源自 PTT Turtlesoup 版的網頁版海龜湯：湯主出題，玩家在聊天室以是非題推理出完整故事，電腦與手機都能玩。',
+        en: 'Lateral-thinking "turtle soup" puzzles online, inspired by PTT\'s Turtlesoup board: the host sets a riddle and players ask yes-or-no questions in a chat room until they piece the story together.',
+      },
+    },
+    {
+      slug: 'throw-and-hit',
+      url: 'https://throw-and-hit.tonypa.in',
+      title: { 'zh-TW': 'Throw and Hit', en: 'Throw and Hit' },
+      desc: {
+        'zh-TW': '用 Node.js 做的雙人連線棒球對決：一人投球、一人打擊，出手時機決定是好球、安打還是全壘打。',
+        en: 'A two-player online baseball duel built with Node.js: one pitches, one bats, and timing decides between a strike, a base hit and a home run.',
+      },
+    },
+    {
+      slug: 'travel',
+      url: 'https://travel.tonypa.in/',
+      title: { 'zh-TW': '制縣等級台灣版', en: 'Taiwan Travel Level' },
+      desc: {
+        'zh-TW': '日本知名工具 KKN 的台灣版：標記你在各縣市居住、短居或旅遊過，產生地圖與分數。以原生 JS 製作，兩週內爆紅，吸引 70 萬名不重複訪客。',
+        en: 'A Taiwan take on the Japanese KKN tool: mark where you have lived, stayed or travelled to get a map and a score. Built with vanilla JS, it drew 700,000 unique visitors in two weeks.',
+      },
+    },
+    {
+      slug: 'keyboard-generator',
+      url: 'https://keyboard-generator.tonypa.in/',
+      title: { 'zh-TW': '鍵盤發電機', en: 'Keyboard Generator' },
+      desc: {
+        'zh-TW': '與 steveice、vansteki 在百度黑客松做的無用發明：連打方向鍵或點擊燈泡就能「發電」，提醒大家電力得來不易。',
+        en: 'A useless invention from a Baidu hackathon with steveice and vansteki: mash the arrow keys or click the bulb to "generate power", a reminder that electricity is not free.',
+      },
+    },
+    {
+      slug: 'a-wei',
+      url: 'https://a-wei.tonypa.in/',
+      title: { 'zh-TW': '如果早知道，男生也會被登大人之平行宇宙', en: '如果早知道，男生也會被登大人之平行宇宙' },
+      desc: {
+        'zh-TW': '用 Twine 做的互動選擇故事：如果你是阿偉，你會怎麼選擇？每個選項都通往平行宇宙裡不同的結局。',
+        en: 'A branching Twine story: you are A-Wei of Taiwanese meme fame, and every choice leads to a different ending in a parallel universe.',
+      },
+    },
+    {
+      slug: 'inukshuk',
+      url: 'https://tonypa.in/inukshuk/',
+      title: { 'zh-TW': 'Inukshuk', en: 'Inukshuk' },
+      desc: {
+        'zh-TW': '一顆一顆疊出獨一無二的石堆人，讓它佇立在你所在地的季節裡，隨時間風化並引來動物。',
+        en: 'Stack unique stones into an inukshuk and let it stand through the seasons where you are, weathering and gathering animals over time.',
+      },
+    },
+    {
+      slug: 'mirror-dimension',
+      url: 'https://tonypa.in/claude-build-day/',
+      title: { 'zh-TW': '鏡像維度', en: 'Mirror Dimension' },
+      desc: {
+        'zh-TW': '奇異博士風格的城市模擬器：以 OpenStreetMap 真實建築與空拍影像，用 Three.js 把台北、東京、紐約、巴黎與香港折成不停旋轉的鏡像隧道，整個作品是一個離線 HTML 檔。',
+        en: 'A Doctor Strange-style city simulator: real OpenStreetMap buildings and aerial imagery of Taipei, Tokyo, New York, Paris and Hong Kong, folded into an endlessly turning mirror tunnel with Three.js, all in one offline HTML file.',
+      },
+    },
+  ];
+
   const $ = (id) => document.getElementById(id);
   const resumeView = $('resume');
   const blogView = $('blog');
+  const worksView = $('works');
   const command = $('command');
   const mode = $('mode');
   const msg = $('msg');
   const STRINGS = {
     'zh-TW': {
       htmlLang: 'zh-Hant-TW',
-      copy: '複製', copyLong: ' Markdown', downloadLong: '下載 ', blog: '文章', resume: '履歷', toggle: 'English',
+      copy: '複製', copyLong: ' Markdown', downloadLong: '下載 ', blog: '文章', works: '作品', resume: '履歷', toggle: 'English',
       bar: '快速鍵',
       switched: '已切換為繁體中文',
       copied: '已將履歷複製為 Markdown',
@@ -42,10 +148,11 @@
       notFoundHint: '按 B 列出所有文章。',
       blogFailed: (m) => `無法讀取文章：${m}。`,
       retry: '按 B 重試。',
+      worksHint: (n) => `共 ${n} 項作品。按 ↑↓ 選擇、Enter 開啟，Esc 返回履歷。`,
     },
     en: {
       htmlLang: 'en',
-      copy: 'Copy', copyLong: ' Markdown', downloadLong: 'Download ', blog: 'Blog', resume: 'Resume', toggle: '中文',
+      copy: 'Copy', copyLong: ' Markdown', downloadLong: 'Download ', blog: 'Blog', works: 'Works', resume: 'Resume', toggle: '中文',
       bar: 'Keyboard shortcuts',
       switched: 'Switched to English',
       copied: 'Copied resume as Markdown',
@@ -60,6 +167,7 @@
       notFoundHint: 'Press B to list the posts.',
       blogFailed: (m) => `Couldn't read the blog: ${m}.`,
       retry: 'Press B to try again.',
+      worksHint: (n) => `${n} works. Press ↑↓ to pick one, Enter to open it, Esc to go back.`,
     },
   };
 
@@ -471,7 +579,43 @@
     document.title = `${post.title} | Tony Pai`;
   }
 
-  // ---------- routing: #blog, #blog/<slug>, anything else is the resume ----------
+  // ---------- works: a TREE of links, each with a screenshot ----------
+
+  function renderWorks() {
+    const tree = el('ul', 'tree');
+    WORKS.forEach((work) => {
+      const title = el('a', 'title');
+      title.href = work.url;
+      title.target = '_blank';
+      title.rel = 'noopener';
+      const host = work.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+      title.append(el('span', 't', work.title[lang]), el('span', 'host', host));
+
+      // The title link is the one to tab to; the screenshot is a bigger click target.
+      const shotLink = el('a', 'shot');
+      shotLink.href = work.url;
+      shotLink.target = '_blank';
+      shotLink.rel = 'noopener';
+      shotLink.tabIndex = -1;
+      shotLink.setAttribute('aria-hidden', 'true');
+      const img = el('img');
+      img.src = `images/works/${work.slug}.jpg`;
+      img.alt = '';
+      img.width = 640;
+      img.height = 400;
+      img.loading = 'lazy';
+      shotLink.append(img);
+
+      const body = el('div', 'body');
+      body.append(shotLink, el('p', null, work.desc[lang]));
+      const li = el('li', 'work');
+      li.append(title, body);
+      tree.append(li);
+    });
+    worksView.replaceChildren(tree, el('p', 'dim', t().worksHint(WORKS.length)));
+  }
+
+  // ---------- routing: #blog, #blog/<slug>, #works, anything else is the resume ----------
 
   async function route(moveFocus) {
     const token = ++routeToken;
@@ -480,23 +624,34 @@
     localizeView = () => {};
     document.title = resumeTitle();
 
-    const blog = hash === 'blog' || hash.startsWith('blog/');
+    const view = hash === 'blog' || hash.startsWith('blog/') ? 'blog' : hash === 'works' ? 'works' : 'resume';
+    document.documentElement.dataset.view = view;
     document.querySelectorAll('[data-key="t"], [data-key="c"], [data-key="d"]').forEach((button) => {
-      button.hidden = blog;
+      button.hidden = view !== 'resume';
     });
+    resumeView.hidden = view !== 'resume';
+    blogView.hidden = view !== 'blog';
+    worksView.hidden = view !== 'works';
 
-    if (!blog) {
-      resumeView.hidden = false;
-      blogView.hidden = true;
+    if (view === 'resume') {
       mode.textContent = '【履歷】';
       command.textContent = 'C:\\> TYPE RESUME.TXT';
       if (moveFocus) settle(resumeView);
       return;
     }
 
+    if (view === 'works') {
+      mode.textContent = '【作品】';
+      command.textContent = 'C:\\> TREE WORKS';
+      renderWorks();
+      if (moveFocus) {
+        settle(worksView);
+        worksView.querySelector('.title').focus({ preventScroll: true });
+      }
+      return;
+    }
+
     const slug = hash.slice('blog/'.length);
-    resumeView.hidden = true;
-    blogView.hidden = false;
     mode.textContent = '【文章】';
     command.textContent = slug ? `C:\\> TYPE BLOG\\${slug}.md` : 'C:\\> DIR BLOG';
     const loading = el('p');
@@ -562,11 +717,12 @@
   // ---------- actions ----------
 
   const inBlog = () => !blogView.hidden;
+  const inResume = () => !resumeView.hidden;
 
   async function run(key) {
     switch (key) {
       case 'c':
-        if (inBlog()) break;
+        if (!inResume()) break;
         try {
           await copyText(resumeMarkdown());
           say(t().copied);
@@ -575,7 +731,7 @@
         }
         break;
       case 'd': {
-        if (inBlog()) break;
+        if (!inResume()) break;
         const name = DOCX_NAME[lang];
         say(t().building(name), true);
         try {
@@ -595,11 +751,14 @@
         break;
       }
       case 't':
-        if (inBlog()) break;
+        if (!inResume()) break;
         toggleLang();
         break;
       case 'b':
         go('blog');
+        break;
+      case 'w':
+        go('works');
         break;
       case 'r':
         go('');
@@ -617,22 +776,23 @@
     if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
 
-    if (key === 'c' || key === 'd' || key === 'b' || key === 'r' || key === 't') {
+    if (['c', 'd', 'b', 'w', 'r', 't'].includes(key)) {
       e.preventDefault();
       run(key);
       return;
     }
 
-    if (key === 'Escape' && inBlog()) {
+    if (key === 'Escape' && !inResume()) {
       e.preventDefault();
       go(currentPost || location.hash.startsWith('#blog/') ? 'blog' : '');
       return;
     }
 
-    const links = inBlog() ? [...blogView.querySelectorAll('.dir a')] : [];
+    const links = inBlog() ? [...blogView.querySelectorAll('.dir a')]
+      : worksView.hidden ? [] : [...worksView.querySelectorAll('.work .title')];
     if (!links.length) return;
 
-    if (/^[1-9]$/.test(key) && links[key - 1]) {
+    if (/^[1-9]$/.test(key) && inBlog() && links[key - 1]) {
       e.preventDefault();
       links[key - 1].click();
     } else if (key === 'ArrowDown' || key === 'ArrowUp') {
