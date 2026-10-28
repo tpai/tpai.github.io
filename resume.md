@@ -27,8 +27,8 @@
     ・Developed GitLab CI/CD pipelines optimizing deployments.
     ・Integrated EFK with applications for log collection.
     <b>Achievements</b>
-    ・Introduced Ansible and Terraform, increasing the speed of on-premises and cloud solution setup by 5x.
-    ・Implemented Prometheus and Grafana to centralize metrics, reducing troubleshooting time by 50%.
+    ・Introduced Ansible and Terraform, increasing the speed of on-premises and cloud solution setup.
+    ・Implemented Prometheus and Grafana to centralize metrics, reducing troubleshooting time.
     ・Introduced Cert Manager to automate HTTPS certificate renewal.
     <b>Tech Stack</b>
     ・Docker, Kubernetes, Azure, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform

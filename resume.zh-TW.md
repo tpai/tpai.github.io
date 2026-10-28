@@ -27,8 +27,8 @@
     ・開發 GitLab CI/CD 流程，優化部署效率。
     ・整合 EFK 與應用程式以收集日誌。
     <b>成果</b>
-    ・導入 Ansible 與 Terraform，地端與雲端方案的建置速度提升 5 倍。
-    ・導入 Prometheus 與 Grafana 集中管理監控指標，故障排查時間減少 50%。
+    ・導入 Ansible 與 Terraform，提升地端與雲端方案的建置速度。
+    ・導入 Prometheus 與 Grafana 集中管理監控指標，減少故障排查時間。
     ・導入 Cert Manager 自動更新 HTTPS 憑證。
     <b>技術堆疊</b>
     ・Docker、Kubernetes、Azure、AWS、GitLab CI/CD、EFK、Prometheus、Grafana、Ansible、Terraform
