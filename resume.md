@@ -14,12 +14,13 @@
     ・Designed on-premises and cloud solutions for core products (insurance system and AI guardrails).
     ・Experienced in working with data center (IDC) providers in Taiwan.
     ・Experienced in cross-border collaboration and on-site deployments.
+    ・Hands-on experience scheduling cloud and on-premises GPU resources on Kubernetes.
     <b>Achievements</b>
     ・Successfully implemented an on-premises insurance system in collaboration with an international insurance broker for Tesla car insurance sales in Taiwan.
     ・Successfully deployed on-premises AI guardrails on the private cloud of a Korean financial insurance client.
-    ・Built a highly available SaaS environment, giving clients more deployment options.
+    ・Built a highly available SaaS environment, giving AI guardrails clients more flexible options.
     <b>Tech Stack</b>
-    ・Docker, Kubernetes, On-Premises, Azure, GCP, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform, Python, Shell, Cloudflare ZTNA
+    ・Docker, Kubernetes, Helm Chart, On-Premises, Azure, GCP, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform, Python, Shell, Cloudflare ZTNA
 
 <u><b>OneDegree / Senior Site Reliability Engineer *2021.7-2022.7*</b></u>
     Responsible for managing and automating cloud infrastructure deployments.
@@ -31,7 +32,7 @@
     ・Implemented Prometheus and Grafana to centralize metrics, reducing troubleshooting time.
     ・Introduced Cert Manager to automate HTTPS certificate renewal.
     <b>Tech Stack</b>
-    ・Docker, Kubernetes, Azure, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform
+    ・Docker, Kubernetes, Helm Chart, Azure, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform
 
 <u><b>OneDegree / Senior Engineer *2020.5-2021.7*</b></u>
     Responsible for developing an insurance core system and customizing landing pages for clients.

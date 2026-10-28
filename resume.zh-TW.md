@@ -14,12 +14,13 @@
     ・為核心產品（保險系統及 AI 護欄）設計地端與雲端解決方案。
     ・具備國內 IDC 廠商合作經驗。
     ・具備跨國協作以及現場部署經驗。
+    ・具備在 Kubernetes 上調度雲地 GPU 資源之實務經驗。
     <b>成果</b>
     ・與國際保險經紀商合作，成功導入地端保險系統，支援 Tesla 在台車險銷售。
     ・於韓國金融保險客戶之私有雲成功部署地端 AI 護欄。
-    ・建置高可用軟體即服務環境為客戶提供多樣選擇。
+    ・建置高可用軟體即服務環境為 AI 護欄的客戶提供更彈性的方案。
     <b>技術堆疊</b>
-    ・Docker、Kubernetes、地端部署、Azure、GCP、AWS、GitLab CI/CD、EFK、Prometheus、Grafana、Ansible、Terraform、Python、Shell、Cloudflare ZTNA
+    ・Docker、Kubernetes、Helm Chart、地端部署、Azure、GCP、AWS、GitLab CI/CD、EFK、Prometheus、Grafana、Ansible、Terraform、Python、Shell、Cloudflare ZTNA
 
 <u><b>OneDegree / 資深網站可靠性工程師 *2021.7-2022.7*</b></u>
     負責管理雲端基礎設施並自動化部署。
@@ -31,7 +32,7 @@
     ・導入 Prometheus 與 Grafana 集中管理監控指標，減少故障排查時間。
     ・導入 Cert Manager 自動更新 HTTPS 憑證。
     <b>技術堆疊</b>
-    ・Docker、Kubernetes、Azure、AWS、GitLab CI/CD、EFK、Prometheus、Grafana、Ansible、Terraform
+    ・Docker、Kubernetes、Helm Chart、Azure、AWS、GitLab CI/CD、EFK、Prometheus、Grafana、Ansible、Terraform
 
 <u><b>OneDegree / 資深工程師 *2020.5-2021.7*</b></u>
     負責開發保險核心系統，並為客戶客製化形象頁。
