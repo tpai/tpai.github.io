@@ -18,6 +18,18 @@
     marked: 'https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js',
     purify: 'https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js',
     docx: 'https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.iife.js',
+    pdflib: 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+  };
+  const FONTS = 'https://cdn.jsdelivr.net/npm/@expo-google-fonts';
+  // pdf-lib's subsetting garbles Noto Sans, so the small Latin fonts are embedded whole.
+  const PDF_FONTS = {
+    'zh-TW': { subset: true, regular: `${FONTS}/noto-sans-tc@0.4.3/400Regular/NotoSansTC_400Regular.ttf` },
+    en: {
+      subset: false,
+      regular: `${FONTS}/noto-sans@0.4.2/400Regular/NotoSans_400Regular.ttf`,
+      bold: `${FONTS}/noto-sans@0.4.2/700Bold/NotoSans_700Bold.ttf`,
+    },
   };
 
   // Shown by W, in this order; screenshots live at images/works/<slug>.jpg (640x400).
@@ -140,8 +152,7 @@
       copyFailed: (m) => `無法複製：${m}`,
       building: (f) => `正在產生 ${f} ...`,
       downloaded: (f) => `已下載 ${f}`,
-      docxFailed: (m) => `無法產生 .docx：${m}`,
-      printHint: '請在列印視窗選擇「另存為 PDF」',
+      buildFailed: (f, m) => `無法產生 ${f}：${m}`,
       reading: '讀取 C:\\BLOG 中 ...',
       listHint: (n, keys) => `共 ${n} 篇文章。按 ${keys} 或 Enter 閱讀，Esc 返回履歷。`,
       postHint: '按 Esc 返回文章列表。',
@@ -160,8 +171,7 @@
       copyFailed: (m) => `Couldn't copy: ${m}`,
       building: (f) => `Building ${f} ...`,
       downloaded: (f) => `Downloaded ${f}`,
-      docxFailed: (m) => `Couldn't build the .docx: ${m}`,
-      printHint: 'Choose "Save as PDF" in the print dialog',
+      buildFailed: (f, m) => `Couldn't build ${f}: ${m}`,
       reading: 'Reading C:\\BLOG ...',
       listHint: (n, keys) => `${n} posts. Press ${keys} or Enter to read one, Esc to go back.`,
       postHint: 'Esc back to the list.',
@@ -268,7 +278,7 @@
   }
 
   // ---------- resume DOM -> block model ----------
-  // The rendered resume is the single source for both Markdown and .docx.
+  // The rendered resume is the single source for Markdown, .docx and .pdf.
 
   function collect(node, fmt, lines) {
     node.childNodes.forEach((child) => {
@@ -484,11 +494,228 @@
     return D.Packer.toBlob(doc);
   }
 
-  async function downloadDocx() {
-    const name = FILE_NAME[lang] + '.docx';
+  // ---------- .pdf ----------
+  // Drawn in the page like the .docx so every link becomes a real link annotation;
+  // browsers' print-to-PDF can drop them. Noto Sans TC is ~4 MB, so fonts load only
+  // when asked for, and zh-TW bold is regular filled and stroked to skip a second one.
+
+  const fetched = {};
+  function fetchBytes(url) {
+    if (!fetched[url]) {
+      fetched[url] = fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error(`could not load ${url.split('/').pop()} (${res.status})`);
+          return res.arrayBuffer();
+        })
+        .catch((err) => {
+          delete fetched[url];
+          throw err;
+        });
+    }
+    return fetched[url];
+  }
+
+  async function resumePdf() {
+    // Read the page before awaiting, so pressing T mid-build can't mix languages.
+    const blocks = resumeBlocks();
+    const title = resumeTitle();
+    const fonts = PDF_FONTS[lang];
+    const htmlLang = t().htmlLang;
+    const [regularBytes, boldBytes] = await Promise.all([
+      fetchBytes(fonts.regular),
+      fonts.bold ? fetchBytes(fonts.bold) : null,
+      loadScript(LIBS.pdflib),
+      loadScript(LIBS.fontkit),
+    ]);
+    const P = window.PDFLib;
+
+    const pdf = await P.PDFDocument.create();
+    pdf.registerFontkit(window.fontkit);
+    pdf.setTitle(title);
+    pdf.setAuthor('Tony Pai');
+    pdf.setLanguage(htmlLang);
+    const regular = await pdf.embedFont(regularBytes, { subset: fonts.subset });
+    const bold = boldBytes ? await pdf.embedFont(boldBytes, { subset: fonts.subset }) : regular;
+    const fauxBold = !boldBytes;
+
+    // A4 in points, with the .docx margins.
+    const [PW, PH] = [595.28, 841.89];
+    const MX = 45;
+    const MY = 36;
+    const BODY = 10;
+    const LEAD = 1.45;
+    const TEXT = P.rgb(0.13, 0.13, 0.13);
+    const MUTED = P.rgb(0.33, 0.33, 0.33);
+    const RULE = P.rgb(0.6, 0.6, 0.6);
+    const LINK = P.rgb(0.06, 0.3, 0.6);
+
+    // Breaks between CJK characters and at spaces; no line starts with closing punctuation.
+    const C = '\\u2e80-\\u9fff\\uf900-\\ufaff\\uff00-\\uffef\\u3000-\\u303f';
+    const TOKEN = new RegExp(`[${C}]|[^\\s${C}]+|\\s+`, 'g');
+    const NO_START = /^[，。、；：！？）」』》,.;:!?)]/;
+
+    let page;
+    let y;
+    const newPage = () => {
+      page = pdf.addPage([PW, PH]);
+      y = MY;
+    };
+    const room = (h) => {
+      if (y + h > PH - MY) newPage();
+    };
+    newPage();
+
+    const trimEnd = (line) => {
+      while (line.length && !line[line.length - 1].text.trim()) line.pop();
+    };
+
+    function wrap(runs, size, width) {
+      const lines = [[]];
+      let x = 0;
+      for (const r of runs) {
+        const font = r.b ? bold : regular;
+        for (const text of r.text.match(TOKEN) || []) {
+          const w = font.widthOfTextAtSize(text, size);
+          let line = lines[lines.length - 1];
+          if (!text.trim() && !line.length) continue;
+          if (x + w > width && line.length && text.trim() && !NO_START.test(text)) {
+            trimEnd(line);
+            line = [];
+            lines.push(line);
+            x = 0;
+          }
+          line.push({ r, font, text, w });
+          x += w;
+        }
+      }
+      lines.forEach(trimEnd);
+      return lines.filter((line) => line.length);
+    }
+
+    const lineWidth = (line) => line.reduce((sum, p) => sum + p.w, 0);
+
+    function addLink(href, x1, x2, base, size) {
+      page.drawLine({ start: { x: x1, y: base - 1.5 }, end: { x: x2, y: base - 1.5 }, thickness: 0.5, color: LINK });
+      const annot = pdf.context.obj({
+        Type: 'Annot',
+        Subtype: 'Link',
+        Rect: [x1, base - size * 0.3, x2, base + size * 0.9],
+        Border: [0, 0, 0],
+        A: { Type: 'Action', S: 'URI', URI: P.PDFString.of(href) },
+      });
+      page.node.addAnnot(pdf.context.register(annot));
+    }
+
+    function drawLine(line, x, size, color) {
+      const base = PH - y - size;
+      let span = null;
+      const flush = () => {
+        if (span) addLink(span.href, span.x1, span.x2, base, size);
+        span = null;
+      };
+      for (const p of line) {
+        const c = p.r.href ? LINK : p.r.color || color;
+        const faux = fauxBold && p.r.b;
+        if (faux) {
+          page.pushOperators(
+            P.setTextRenderingMode(P.TextRenderingMode.FillAndOutline),
+            P.setLineWidth(size / 30),
+            P.setStrokingColor(c),
+          );
+        }
+        page.drawText(p.text, { x, y: base, size, font: p.font, color: c });
+        if (faux) page.pushOperators(P.setTextRenderingMode(P.TextRenderingMode.Fill));
+        if (span && span.href !== p.r.href) flush();
+        if (p.r.href) {
+          if (!span) span = { href: p.r.href, x1: x };
+          span.x2 = x + p.w;
+        }
+        x += p.w;
+      }
+      flush();
+      return base;
+    }
+
+    // One wrapped paragraph; `keep` reserves room for what must follow on the same page.
+    function para(runs, opts = {}) {
+      const { size = BODY, indent = 0, color = TEXT, before = 0, after = 0, keep = 0, center, marker, right } = opts;
+      const x0 = MX + indent;
+      const rightW = right ? regular.widthOfTextAtSize(right, size) + 12 : 0;
+      const lines = wrap(runs, size, PW - MX - x0 - rightW);
+      const lh = size * LEAD;
+      if (y > MY) y += before;
+      room(lh + keep);
+      lines.forEach((line, i) => {
+        room(lh);
+        const x = center ? (PW - lineWidth(line)) / 2 : x0;
+        const base = drawLine(line, x, size, color);
+        if (i === 0 && marker) page.drawText(marker, { x: MX + 2, y: base, size, font: regular, color });
+        if (i === 0 && right) {
+          page.drawText(right, { x: PW - MX - rightW + 12, y: base, size, font: regular, color: MUTED });
+        }
+        y += lh;
+      });
+      y += after;
+    }
+
+    for (const block of blocks) {
+      switch (block.type) {
+        case 'name':
+          para([{ text: block.text, b: true }], { size: 24, center: true, after: 2 });
+          break;
+        case 'role':
+          para([{ text: block.text }], { size: 13, color: MUTED, center: true, after: 4 });
+          break;
+        case 'contact': {
+          const runs = [];
+          block.lines.forEach((line, i) => {
+            if (i) runs.push({ text: '  |  ', color: RULE });
+            runs.push(...line);
+          });
+          para(runs, { center: true, after: 6 });
+          break;
+        }
+        case 'heading': {
+          para([{ text: block.text, b: true }], { size: 12, before: 14, keep: BODY * LEAD * 2 });
+          const ruleY = PH - y + 2;
+          page.drawLine({ start: { x: MX, y: ruleY }, end: { x: PW - MX, y: ruleY }, thickness: 0.6, color: RULE });
+          y += 6;
+          break;
+        }
+        case 'entry':
+          block.lines.forEach((line, i) => {
+            const after = i === block.lines.length - 1 ? 8 : 1;
+            if (line.kind === 'title') {
+              const name = line.runs.filter((r) => !r.i).map((r) => ({ ...r, b: true }));
+              const date = textOf(line.runs.filter((r) => r.i)).trim();
+              para(name, { before: 4, after: 1, keep: BODY * LEAD, right: date });
+            } else if (line.kind === 'bullet') {
+              para(line.runs, { indent: 12, marker: '•', after });
+            } else if (line.kind === 'label') {
+              para(line.runs.map((r) => ({ ...r, b: true })), { before: 3, after: 1, keep: BODY * LEAD });
+            } else {
+              para(line.runs, { after });
+            }
+          });
+          break;
+        case 'item':
+          block.lines.forEach((line, i) => {
+            const last = i === block.lines.length - 1;
+            const runs = i === 0 ? line.map((r) => ({ ...r, b: true })) : line;
+            para(runs, { after: last ? 6 : 1, keep: last ? 0 : BODY * LEAD });
+          });
+          break;
+      }
+    }
+
+    return new Blob([await pdf.save()], { type: 'application/pdf' });
+  }
+
+  async function download(ext, build) {
+    const name = `${FILE_NAME[lang]}.${ext}`;
     say(t().building(name), true);
     try {
-      const blob = await resumeDocx();
+      const blob = await build();
       const url = URL.createObjectURL(blob);
       const a = el('a');
       a.href = url;
@@ -499,20 +726,8 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       say(t().downloaded(name));
     } catch (err) {
-      say(t().docxFailed(err.message));
+      say(t().buildFailed(name, err.message));
     }
-  }
-
-  // ---------- .pdf ----------
-  // The browser prints the resume with the @media print styles in resume.css,
-  // which keeps the Chinese text selectable; the title becomes the default file name.
-
-  function printPdf() {
-    const title = document.title;
-    document.title = FILE_NAME[lang];
-    window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
-    say(t().printHint);
-    window.print();
   }
 
   function askFormat() {
@@ -785,10 +1000,10 @@
         askFormat();
         break;
       case '1':
-        if (picking) await downloadDocx();
+        if (picking) await download('docx', resumeDocx);
         break;
       case '2':
-        if (picking) printPdf();
+        if (picking) await download('pdf', resumePdf);
         break;
       case 't':
         if (!inResume()) break;
