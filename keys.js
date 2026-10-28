@@ -752,6 +752,7 @@
   }
 
   // GitHub Pages can't list a directory, so the build writes posts/index.json (posts-index.js).
+  // .nojekyll stops Pages turning posts with front matter into .html, which 404s the .md.
   async function listPostFiles() {
     const res = await fetch('posts/index.json');
     if (!res.ok) throw new Error(`posts/index.json returned ${res.status}`);
