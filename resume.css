@@ -15,7 +15,7 @@
 
 @font-face {
   font-family: 'Unifont';
-  src: url(https://cdn.jsdelivr.net/npm/@fontsource/unifont@5.2.5/files/unifont-latin-400-normal.woff2) format('woff2');
+  src: url(fonts/unifont-latin-400-normal.woff2) format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

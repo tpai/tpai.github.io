@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Markdown based resume",
   "scripts": {
-    "start": "bnr cp:css && bnr cp:html && bnr build:html && bnr build:zh && bnr rename && bnr embed:zh && bnr server",
+    "start": "bnr cp:css && bnr cp:html && bnr build:html && bnr build:zh && bnr rename && bnr embed:zh && bnr posts && bnr server",
     "dev": "nodemon -w resume.md -w resume.zh-TW.md -w resume.css -w default.html"
   },
   "betterScripts": {
@@ -13,6 +13,7 @@
     "build:zh": "node ./node_modules/markdown-resume/bin/md2resume resume.zh-TW.md",
     "rename": "mv resume.html index.html",
     "embed:zh": "node embed-zh.js",
+    "posts": "node posts-index.js",
     "server": "serve ."
   },
   "devDependencies": {

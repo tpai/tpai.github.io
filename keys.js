@@ -1,7 +1,7 @@
 // Keyboard shortcuts for the DOS-style resume:
 //   C  copy the resume as Markdown        (resume only)
 //   D  download the resume, then 1 for .docx or 2 for .pdf (resume only)
-//   B  list blog posts from posts/ in this repo
+//   B  list blog posts from posts/ in this repo (posts/index.json, made by the build)
 //   W  list my works (WORKS below, screenshots in images/works/)
 //   R  back to the resume
 //   T  toggle 繁體中文 (default) / English  (resume only)
@@ -10,26 +10,21 @@
 (() => {
   'use strict';
 
-  const BLOG_REPO = 'tpai/tpai.github.io';
-  const BLOG_BRANCH = 'master';
   const BLOG_EXCLUDE = ['Local-LLM-benchmark.md'];
   const FILE_NAME = { 'zh-TW': 'Tony-Pai-Resume-zh-TW', en: 'Tony-Pai-Resume' };
+  // Vendored in vendor/ and fonts/ (licenses next to them): marked 15.0.12, DOMPurify 3.2.6,
+  // docx 9.5.1, pdf-lib 1.17.1, @pdf-lib/fontkit 1.1.1, Noto Sans TC and Noto Sans.
   const LIBS = {
-    marked: 'https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js',
-    purify: 'https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js',
-    docx: 'https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.iife.js',
-    pdflib: 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
-    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+    marked: 'vendor/marked.min.js',
+    purify: 'vendor/purify.min.js',
+    docx: 'vendor/docx.iife.js',
+    pdflib: 'vendor/pdf-lib.min.js',
+    fontkit: 'vendor/fontkit.umd.min.js',
   };
-  const FONTS = 'https://cdn.jsdelivr.net/npm/@expo-google-fonts';
   // pdf-lib's subsetting garbles Noto Sans, so the small Latin fonts are embedded whole.
   const PDF_FONTS = {
-    'zh-TW': { subset: true, regular: `${FONTS}/noto-sans-tc@0.4.3/400Regular/NotoSansTC_400Regular.ttf` },
-    en: {
-      subset: false,
-      regular: `${FONTS}/noto-sans@0.4.2/400Regular/NotoSans_400Regular.ttf`,
-      bold: `${FONTS}/noto-sans@0.4.2/700Bold/NotoSans_700Bold.ttf`,
-    },
+    'zh-TW': { subset: true, regular: 'fonts/NotoSansTC-Regular.ttf' },
+    en: { subset: false, regular: 'fonts/NotoSans-Regular.ttf', bold: 'fonts/NotoSans-Bold.ttf' },
   };
 
   // Shown by W, in this order; screenshots live at images/works/<slug>.jpg (640x400).
@@ -219,7 +214,7 @@
         s.onload = resolve;
         s.onerror = () => {
           delete loaded[src];
-          reject(new Error('could not load ' + src.split('/npm/')[1]));
+          reject(new Error('could not load ' + src));
         };
         document.head.appendChild(s);
       });
@@ -496,7 +491,7 @@
 
   // ---------- .pdf ----------
   // Drawn in the page like the .docx so every link becomes a real link annotation;
-  // browsers' print-to-PDF can drop them. Noto Sans TC is ~4 MB, so fonts load only
+  // browsers' print-to-PDF can drop them. Noto Sans TC is ~7 MB, so fonts load only
   // when asked for, and zh-TW bold is regular filled and stroked to skip a second one.
 
   const fetched = {};
@@ -756,24 +751,11 @@
     return postsPromise;
   }
 
+  // GitHub Pages can't list a directory, so the build writes posts/index.json (posts-index.js).
   async function listPostFiles() {
-    try {
-      const res = await fetch(`https://api.github.com/repos/${BLOG_REPO}/contents/posts`);
-      if (!res.ok) throw new Error(`GitHub returned ${res.status}`);
-      return (await res.json())
-        .filter((f) => f.type === 'file')
-        .map((f) => ({ name: f.name, url: f.download_url }));
-    } catch (err) {
-      // GitHub's API allows 60 requests an hour per IP; jsDelivr mirrors the repo.
-      const res = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${BLOG_REPO}@${BLOG_BRANCH}?structure=flat`);
-      if (!res.ok) throw new Error(`GitHub and jsDelivr both failed (${res.status})`);
-      return (await res.json()).files
-        .filter((f) => /^\/posts\/[^/]+$/.test(f.name))
-        .map((f) => ({
-          name: f.name.slice('/posts/'.length),
-          url: `https://cdn.jsdelivr.net/gh/${BLOG_REPO}@${BLOG_BRANCH}${f.name}`,
-        }));
-    }
+    const res = await fetch('posts/index.json');
+    if (!res.ok) throw new Error(`posts/index.json returned ${res.status}`);
+    return (await res.json()).map((name) => ({ name, url: 'posts/' + encodeURIComponent(name) }));
   }
 
   async function loadPosts() {
@@ -827,8 +809,6 @@
     const article = el('article', 'post');
     article.innerHTML = window.DOMPurify.sanitize(window.marked.parse(post.body));
     article.querySelectorAll('img').forEach((img) => {
-      const src = img.getAttribute('src') || '';
-      if (src.startsWith('/')) img.src = `https://raw.githubusercontent.com/${BLOG_REPO}/${BLOG_BRANCH}${src}`;
       img.loading = 'lazy';
     });
     article.querySelectorAll('a[href^="http"]').forEach((a) => {
