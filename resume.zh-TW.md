@@ -12,20 +12,19 @@
 <u><b>OneDegree / 首席網站可靠性工程師 *2022.7-至今*</b></u>
     負責系統維運、解決方案設計、工具整合與技術堆疊原型開發。
     ・為核心產品（保險系統及 AI 護欄）設計地端與雲端解決方案。
-    ・具備國內 IDC 廠商合作經驗。
-    ・具備跨國協作以及現場部署經驗。
     ・具備在 Kubernetes 上調度雲地 GPU 資源之實務經驗。
+    ・具備跨國協作、客戶端現場部署及封閉式網路（Air-gapped）環境建置經驗。
     <b>成果</b>
-    ・與國際保險經紀商合作，成功導入地端保險系統，支援 Tesla 在台車險銷售。
+    ・與國際保險經紀商合作，成功導入地端保險系統。
     ・於韓國金融保險客戶之私有雲成功部署地端 AI 護欄。
     ・建置高可用軟體即服務環境為 AI 護欄的客戶提供更彈性的方案。
     <b>技術堆疊</b>
     ・Docker、Kubernetes、Helm Chart、地端部署、Azure、GCP、AWS、GitLab CI/CD、EFK、Prometheus、Grafana、Ansible、Terraform、Python、Shell、Cloudflare ZTNA
 
 <u><b>OneDegree / 資深網站可靠性工程師 *2021.7-2022.7*</b></u>
-    負責管理雲端基礎設施並自動化部署。
+    負責管理雲端基礎設施並自動化部署流程。
     ・維運以 Docker 為基礎的 VM 與 Kubernetes 叢集。
-    ・開發 GitLab CI/CD 流程，優化部署效率。
+    ・優化 GitLab CI/CD 流程，並導入 Helm Chart 提升部署效率。
     ・整合 EFK 與應用程式以收集日誌。
     <b>成果</b>
     ・導入 Ansible 與 Terraform，提升地端與雲端方案的建置速度。

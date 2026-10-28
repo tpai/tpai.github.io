@@ -12,20 +12,19 @@
 <u><b>OneDegree / Principal Site Reliability Engineer *2022.7-Present*</b></u>
     Responsible for system operations, solution design, tool integration, and tech stack prototyping.
     ・Designed on-premises and cloud solutions for core products (insurance system and AI guardrails).
-    ・Experienced in working with data center (IDC) providers in Taiwan.
-    ・Experienced in cross-border collaboration and on-site deployments.
     ・Hands-on experience scheduling cloud and on-premises GPU resources on Kubernetes.
+    ・Experienced in cross-border collaboration, on-site deployments at client premises, and building air-gapped environments.
     <b>Achievements</b>
-    ・Successfully implemented an on-premises insurance system in collaboration with an international insurance broker for Tesla car insurance sales in Taiwan.
+    ・Successfully implemented an on-premises insurance system in collaboration with an international insurance broker.
     ・Successfully deployed on-premises AI guardrails on the private cloud of a Korean financial insurance client.
     ・Built a highly available SaaS environment, giving AI guardrails clients more flexible options.
     <b>Tech Stack</b>
     ・Docker, Kubernetes, Helm Chart, On-Premises, Azure, GCP, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform, Python, Shell, Cloudflare ZTNA
 
 <u><b>OneDegree / Senior Site Reliability Engineer *2021.7-2022.7*</b></u>
-    Responsible for managing and automating cloud infrastructure deployments.
+    Responsible for managing cloud infrastructure and automating deployment workflows.
     ・Maintained Docker-based VMs and Kubernetes clusters.
-    ・Developed GitLab CI/CD pipelines optimizing deployments.
+    ・Optimized GitLab CI/CD pipelines and introduced Helm Chart to improve deployment efficiency.
     ・Integrated EFK with applications for log collection.
     <b>Achievements</b>
     ・Introduced Ansible and Terraform, increasing the speed of on-premises and cloud solution setup.
