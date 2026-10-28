@@ -68,22 +68,6 @@
 
 ------
 
-### Side Projects (GitHub)
-
-* **Summary GPT Bot**
-    <a href="https://github.com/tpai/summary-gpt-bot" target="_blank"><u>tpai/summary-gpt-bot</u></a>
-    An AI-powered text summarization Telegram bot that generates concise summaries of text, URLs, PDFs, and YouTube videos.
-
-* **Doge Deck**
-    <a href="https://github.com/tpai/dogedeck" target="_blank"><u>tpai/dogedeck</u></a>
-    A simple tool to collect meme images, those images are Yu-Gi-Oh themed cards and full of doges, it provides people who loves meme a better way to search and contribute their creation. It went viral in a week and had 130 thousand unique visitors since the begining.
-
-* **Taiwan Travel Level**
-    <a href="https://github.com/tpai/taiwan-travel-level" target="_blank"><u>tpai/taiwan-travel-level</u></a>
-    There is one famous tool called <a href="https://uub.jp/kkn/" target="_blank">KKN</a> which will generate map and score based on how long and where you stay in Japan, I made a modern version for Taiwan with vanilla JS. It was on fire and attracted 700 thousand unique visitors in two weeks.
-
-------
-
 ### Certifications
 
 * **Microsoft Certified: Azure Developer Associate**

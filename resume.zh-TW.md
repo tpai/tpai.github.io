@@ -68,22 +68,6 @@
 
 ------
 
-### 個人專案 (GitHub)
-
-* **Summary GPT Bot**
-    <a href="https://github.com/tpai/summary-gpt-bot" target="_blank"><u>tpai/summary-gpt-bot</u></a>
-    AI 驅動的 Telegram 摘要機器人，可為文字、網址、PDF 與 YouTube 影片產生精簡摘要。
-
-* **Doge Deck**
-    <a href="https://github.com/tpai/dogedeck" target="_blank"><u>tpai/dogedeck</u></a>
-    蒐集迷因圖的小工具，圖片皆為遊戲王卡片風格並充滿柴犬，讓喜愛迷因的人更方便搜尋與投稿自己的作品。上線一週即爆紅，累計吸引 13 萬名不重複訪客。
-
-* **Taiwan Travel Level**
-    <a href="https://github.com/tpai/taiwan-travel-level" target="_blank"><u>tpai/taiwan-travel-level</u></a>
-    日本有個知名工具 <a href="https://uub.jp/kkn/" target="_blank">KKN</a>，會依照你在日本各地停留的時間與地點產生地圖與分數；我用原生 JS 做了台灣的現代版本，兩週內爆紅，吸引 70 萬名不重複訪客。
-
-------
-
 ### 證照
 
 * **Microsoft Certified: Azure Developer Associate**
