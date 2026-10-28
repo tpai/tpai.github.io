@@ -1,11 +1,11 @@
 // Keyboard shortcuts for the DOS-style resume:
 //   C  copy the resume as Markdown        (resume only)
-//   D  download the resume as a .docx file (resume only)
+//   D  download the resume, then 1 for .docx or 2 for .pdf (resume only)
 //   B  list blog posts from posts/ in this repo
 //   W  list my works (WORKS below, screenshots in images/works/)
 //   R  back to the resume
 //   T  toggle 繁體中文 (default) / English  (resume only)
-// Esc steps back (post -> list -> resume, works -> resume);
+// Esc steps back (post -> list -> resume, works -> resume) or cancels the D prompt;
 // in the blog list 1-9 / arrows / Enter pick a post, in works arrows / Enter open one.
 (() => {
   'use strict';
@@ -13,7 +13,7 @@
   const BLOG_REPO = 'tpai/tpai.github.io';
   const BLOG_BRANCH = 'master';
   const BLOG_EXCLUDE = ['Local-LLM-benchmark.md'];
-  const DOCX_NAME = { 'zh-TW': 'Tony-Pai-Resume-zh-TW.docx', en: 'Tony-Pai-Resume.docx' };
+  const FILE_NAME = { 'zh-TW': 'Tony-Pai-Resume-zh-TW', en: 'Tony-Pai-Resume' };
   const LIBS = {
     marked: 'https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js',
     purify: 'https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js',
@@ -133,7 +133,7 @@
   const STRINGS = {
     'zh-TW': {
       htmlLang: 'zh-Hant-TW',
-      copy: '複製', copyLong: ' Markdown', downloadLong: '下載 ', blog: '文章', works: '作品', resume: '履歷', toggle: 'English',
+      copy: '複製', copyLong: ' Markdown', download: '下載', blog: '文章', works: '作品', resume: '履歷', toggle: 'English',
       bar: '快速鍵',
       switched: '已切換為繁體中文',
       copied: '已將履歷複製為 Markdown',
@@ -141,6 +141,7 @@
       building: (f) => `正在產生 ${f} ...`,
       downloaded: (f) => `已下載 ${f}`,
       docxFailed: (m) => `無法產生 .docx：${m}`,
+      printHint: '請在列印視窗選擇「另存為 PDF」',
       reading: '讀取 C:\\BLOG 中 ...',
       listHint: (n, keys) => `共 ${n} 篇文章。按 ${keys} 或 Enter 閱讀，Esc 返回履歷。`,
       postHint: '按 Esc 返回文章列表。',
@@ -152,7 +153,7 @@
     },
     en: {
       htmlLang: 'en',
-      copy: 'Copy', copyLong: ' Markdown', downloadLong: 'Download ', blog: 'Blog', works: 'Works', resume: 'Resume', toggle: '中文',
+      copy: 'Copy', copyLong: ' Markdown', download: 'Download', blog: 'Blog', works: 'Works', resume: 'Resume', toggle: '中文',
       bar: 'Keyboard shortcuts',
       switched: 'Switched to English',
       copied: 'Copied resume as Markdown',
@@ -160,6 +161,7 @@
       building: (f) => `Building ${f} ...`,
       downloaded: (f) => `Downloaded ${f}`,
       docxFailed: (m) => `Couldn't build the .docx: ${m}`,
+      printHint: 'Choose "Save as PDF" in the print dialog',
       reading: 'Reading C:\\BLOG ...',
       listHint: (n, keys) => `${n} posts. Press ${keys} or Enter to read one, Esc to go back.`,
       postHint: 'Esc back to the list.',
@@ -177,6 +179,8 @@
   let currentPost = null;
   let routeToken = 0;
   let msgTimer;
+  // True while the key bar asks D's question: 1 .docx, 2 .pdf.
+  let picking = false;
   // Re-renders the language-dependent text of the current blog view after T.
   let localizeView = () => {};
 
@@ -184,6 +188,7 @@
 
   function say(text, persist) {
     clearTimeout(msgTimer);
+    picking = false;
     msg.textContent = text;
     if (!persist) msgTimer = setTimeout(() => { msg.textContent = ''; }, 4000);
   }
@@ -479,6 +484,50 @@
     return D.Packer.toBlob(doc);
   }
 
+  async function downloadDocx() {
+    const name = FILE_NAME[lang] + '.docx';
+    say(t().building(name), true);
+    try {
+      const blob = await resumeDocx();
+      const url = URL.createObjectURL(blob);
+      const a = el('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      say(t().downloaded(name));
+    } catch (err) {
+      say(t().docxFailed(err.message));
+    }
+  }
+
+  // ---------- .pdf ----------
+  // The browser prints the resume with the @media print styles in resume.css,
+  // which keeps the Chinese text selectable; the title becomes the default file name.
+
+  function printPdf() {
+    const title = document.title;
+    document.title = FILE_NAME[lang];
+    window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
+    say(t().printHint);
+    window.print();
+  }
+
+  function askFormat() {
+    say('', true);
+    picking = true;
+    const choice = (key, label) => {
+      const button = el('button');
+      button.type = 'button';
+      button.dataset.key = key;
+      button.append(el('kbd', null, key), ' ' + label);
+      return button;
+    };
+    msg.replaceChildren(choice('1', '.docx'), ' ', choice('2', '.pdf'));
+  }
+
   // ---------- blog ----------
 
   let postsPromise = null;
@@ -623,6 +672,7 @@
     currentPost = null;
     localizeView = () => {};
     document.title = resumeTitle();
+    if (picking) say('');
 
     const view = hash === 'blog' || hash.startsWith('blog/') ? 'blog' : hash === 'works' ? 'works' : 'resume';
     document.documentElement.dataset.view = view;
@@ -730,26 +780,16 @@
           say(t().copyFailed(err.message));
         }
         break;
-      case 'd': {
+      case 'd':
         if (!inResume()) break;
-        const name = DOCX_NAME[lang];
-        say(t().building(name), true);
-        try {
-          const blob = await resumeDocx();
-          const url = URL.createObjectURL(blob);
-          const a = el('a');
-          a.href = url;
-          a.download = name;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          say(t().downloaded(name));
-        } catch (err) {
-          say(t().docxFailed(err.message));
-        }
+        askFormat();
         break;
-      }
+      case '1':
+        if (picking) await downloadDocx();
+        break;
+      case '2':
+        if (picking) printPdf();
+        break;
       case 't':
         if (!inResume()) break;
         toggleLang();
@@ -775,6 +815,13 @@
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
     if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+    if (picking && (key === '1' || key === '2' || key === 'Escape')) {
+      e.preventDefault();
+      if (key === 'Escape') say('');
+      else run(key);
+      return;
+    }
 
     if (['c', 'd', 'b', 'w', 'r', 't'].includes(key)) {
       e.preventDefault();
