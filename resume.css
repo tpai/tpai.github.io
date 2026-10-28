@@ -701,7 +701,11 @@ p {
     background-image: linear-gradient(#000, #000);
   }
 
-  a,
+  /* Links stay clickable in a saved PDF; keep them underlined so they read as links. */
+  a {
+    color: #000;
+  }
+
   .resume b,
   .resume strong,
   .resume em,
