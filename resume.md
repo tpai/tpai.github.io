@@ -11,13 +11,13 @@
 
 <u><b>OneDegree / Principal Site Reliability Engineer *2022.7-Present*</b></u>
     Responsible for system operations, solution design, tool integration, and tech stack prototyping.
-    ・Designed on-premises and cloud solutions for core products (insurance core system and AI guardrails).
+    ・Designed on-premises and cloud solutions for core products (insurance system and AI guardrails).
     ・Experienced in working with data center (IDC) providers in Taiwan.
     ・Experienced in cross-border collaboration and on-site deployments.
     <b>Achievements</b>
-    ・Successfully implemented an on-premises solution in collaboration with an international insurance broker for Tesla car insurance sales in Taiwan.
+    ・Successfully implemented an on-premises insurance system in collaboration with an international insurance broker for Tesla car insurance sales in Taiwan.
+    ・Successfully deployed on-premises AI guardrails on the private cloud of a Korean financial insurance client.
     ・Built a highly available SaaS environment, giving clients more deployment options.
-    ・Successfully deployed AI guardrails on the private cloud of a Korean financial insurance client.
     <b>Tech Stack</b>
     ・Docker, Kubernetes, On-Premises, Azure, GCP, AWS, GitLab CI/CD, EFK, Prometheus, Grafana, Ansible, Terraform, Python, Shell, Cloudflare ZTNA
 
